@@ -5,6 +5,7 @@ import FilterBar from "./frontend/filter";
 import Products from "./frontend/products";
 import Footer from "./frontend/footer";
 import AdminDashboard from "./frontend/Admindashboard"; // imported here
+import SaleBanner from "./frontend/Trending";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
             <>
               <Header />
               <Navbar />
+              <SaleBanner />
               <FilterBar />
               <Products />
               <Footer />
