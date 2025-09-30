@@ -22,7 +22,7 @@ export default function Navbar({ onSearch }) {
 
   return (
     <header className="sticky top-0 z-50 bg-white text-black shadow-md">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-2 sm:px-4 lg:px-6 py-2 sm:py-3 gap-2 sm:gap-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-2 sm:px-3 lg:px-4 py-1 sm:py-2 gap-2 sm:gap-3">
         {/* Logo + Name */}
         <div
           className="flex items-center gap-1 sm:gap-2 cursor-pointer select-none flex-shrink-0"
@@ -31,12 +31,15 @@ export default function Navbar({ onSearch }) {
           <img
             src={logoimg}
             alt="Reseller Market Logo"
-            className="h-8 w-16 sm:h-12 sm:w-24 md:h-16 md:w-32 lg:h-[80px] lg:w-[200px] object-contain"
+            className="h-6 w-12 sm:h-10 sm:w-20 md:h-12 md:w-28 lg:h-14 lg:w-36 object-contain"
           />
         </div>
 
         {/* Search Box */}
-        <form onSubmit={handleSearch} className="relative flex-1 max-w-[200px] sm:max-w-xs md:max-w-md lg:max-w-lg">
+        <form
+          onSubmit={handleSearch}
+          className="relative flex-1 max-w-[200px] sm:max-w-xs md:max-w-md lg:max-w-lg"
+        >
           <input
             type="text"
             placeholder="Search..."
