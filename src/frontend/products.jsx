@@ -152,7 +152,9 @@ export default function Products({ filters = {}, searchQuery = "" }) {
             <h3 className="text-base sm:text-lg font-semibold text-black mb-1 line-clamp-2">
               {item.name}
             </h3>
-            <p className="text-black font-bold text-sm sm:text-base mb-3">${item.price}</p>
+            <p className="text-black text-sm sm:text-base mb-3">Shipping : {item.reseller_name}</p>
+            <p className="text-black text-sm sm:text-base mb-3">Code : {item.code}</p>
+            <p className="text-black text-sm sm:text-base mb-3">${item.price}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();

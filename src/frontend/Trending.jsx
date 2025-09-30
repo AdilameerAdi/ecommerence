@@ -82,9 +82,6 @@ export default function SaleBanner() {
           <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold mb-3 sm:mb-4 leading-tight">
             {currentProduct.name}
           </h2>
-          <p className="text-sm sm:text-base lg:text-lg mb-3 sm:mb-4 opacity-90">
-            Code: {currentProduct.code} | Reseller: {currentProduct.reseller_name}
-          </p>
           <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-yellow-300 mb-4 sm:mb-6">
             ${currentProduct.price}
           </div>
