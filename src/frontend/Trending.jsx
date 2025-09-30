@@ -46,7 +46,7 @@ export default function SaleBanner() {
 
   if (loading) {
     return (
-      <section className="relative bg-black text-white rounded-xl lg:rounded-2xl shadow-lg overflow-hidden max-w-7xl mx-auto mt-4 sm:mt-6 lg:mt-8 mx-3 sm:mx-4 lg:mx-auto">
+      <section className="relative bg-black text-white rounded-xl lg:rounded-2xl shadow-lg overflow-hidden max-w-7xl mx-auto mt-4 sm:mt-6 lg:mt-8 sm:mx-4 lg:mx-auto">
         <div className="flex justify-center items-center h-32 sm:h-48 md:h-64">
           <div className="text-white text-sm sm:text-base">Loading trending products...</div>
         </div>
@@ -61,7 +61,7 @@ export default function SaleBanner() {
   const currentProduct = trendingProducts[currentSlide];
 
   return (
-    <section className="relative bg-black text-white rounded-xl lg:rounded-2xl shadow-lg overflow-hidden max-w-7xl mx-auto mt-4 sm:mt-6 lg:mt-8 mx-3 sm:mx-4 lg:mx-auto">
+    <section className="relative bg-black text-white rounded-xl lg:rounded-2xl shadow-lg overflow-hidden max-w-7xl mx-auto mt-4 sm:mt-6 lg:mt-8 sm:mx-4 lg:mx-auto">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
