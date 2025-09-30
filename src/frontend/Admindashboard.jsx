@@ -28,12 +28,12 @@ export default function AdminDashboard() {
   // Check if admin is logged in
   useEffect(() => {
     const user = getAdminUser();
-    console.log('Admin user from session:', user);
+    // Admin user from session
     if (!user) {
-      console.log('No admin user found, redirecting to home');
+      // No admin user found, redirecting to home
       navigate("/"); // Redirect to home if not logged in
     } else {
-      console.log('Setting admin user:', user);
+      // Setting admin user
       setAdminUser(user);
     }
   }, [navigate]);
@@ -620,13 +620,20 @@ export default function AdminDashboard() {
 
         {/* File Upload Input */}
         <div className="mb-4">
+          <label htmlFor="product-images" className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 hover:border-indigo-400 transition-colors cursor-pointer block text-center bg-gray-50 hover:bg-gray-100">
+            <svg className="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span className="text-gray-600">Click to upload images or drag and drop</span>
+            <span className="block text-sm text-gray-400 mt-1">Up to 4 images (JPG, PNG, WebP)</span>
+          </label>
           <input
             type="file"
             id="product-images"
             multiple
             accept="image/*"
             onChange={handleImageSelect}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+            className="hidden"
             disabled={uploadedImages.length + imageFiles.length >= 4}
           />
           <p className="text-sm text-gray-500 mt-1">
@@ -945,13 +952,20 @@ export default function AdminDashboard() {
 
               {/* File Upload Input */}
               <div className="mb-4">
+                <label htmlFor="edit-product-images" className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500 hover:border-indigo-400 transition-colors cursor-pointer block text-center bg-gray-50 hover:bg-gray-100">
+                  <svg className="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <span className="text-gray-600">Click to upload new images</span>
+                  <span className="block text-sm text-gray-400 mt-1">Up to 4 images (JPG, PNG, WebP)</span>
+                </label>
                 <input
                   type="file"
                   id="edit-product-images"
                   multiple
                   accept="image/*"
                   onChange={handleImageSelect}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="hidden"
                   disabled={uploadedImages.length + imageFiles.length >= 4}
                 />
                 <p className="text-sm text-gray-500 mt-1">
@@ -1163,8 +1177,7 @@ export default function AdminDashboard() {
           setLoading(true);
           try {
             // Check if we have valid admin user data
-            console.log('Current adminUser state:', adminUser);
-            console.log('Session storage content:', sessionStorage.getItem('adminUser'));
+            // Current adminUser state and session storage check
 
             if (!adminUser || !adminUser.id) {
               alert('Session expired. Please login again.');
@@ -1231,8 +1244,7 @@ export default function AdminDashboard() {
           setLoading(true);
           try {
             // Check if we have valid admin user data
-            console.log('Current adminUser state for password:', adminUser);
-            console.log('Session storage content:', sessionStorage.getItem('adminUser'));
+            // Current adminUser state for password and session storage check
 
             if (!adminUser || !adminUser.username) {
               alert('Session expired. Please login again.');

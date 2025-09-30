@@ -113,7 +113,7 @@ export default function Products({ filters = {}, searchQuery = "" }) {
   }
 
   return (
-    <section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-10">
+    <section data-products-section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-10">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
         <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 sm:mb-0">Our Products</h2>
         <div className="text-sm text-gray-600">
@@ -224,7 +224,7 @@ export default function Products({ filters = {}, searchQuery = "" }) {
 
       {/* --- Modal --- */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-50 p-3 sm:p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex justify-center items-center z-50 p-3 sm:p-4">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl shadow-lg p-4 sm:p-6 relative flex flex-col lg:flex-row">
             {/* Close button */}
             <button
@@ -236,12 +236,12 @@ export default function Products({ filters = {}, searchQuery = "" }) {
 
             {/* Left - Images */}
             <div className="lg:w-1/2 flex flex-col items-center mb-6 lg:mb-0">
-              <div className="w-full max-w-sm aspect-square rounded-lg border border-gray-200 mb-4 overflow-hidden bg-gray-50">
+              <div className="w-full max-w-sm aspect-square rounded-lg border border-gray-200 mb-4 overflow-hidden bg-gray-50 relative">
                 <img
                   src={mainImage || 'https://via.placeholder.com/400x400?text=No+Image'}
                   alt="Main"
-                  className="w-full h-full object-cover"
-                  style={{ objectFit: 'cover', objectPosition: 'center' }}
+                  className="absolute inset-0 w-full h-full min-w-full min-h-full object-cover"
+                  style={{ objectFit: 'cover', objectPosition: 'center', width: '100%', height: '100%', minWidth: '100%', minHeight: '100%' }}
                 />
               </div>
               <div className="flex space-x-2 overflow-x-auto w-full justify-center pb-2">
@@ -278,10 +278,50 @@ export default function Products({ filters = {}, searchQuery = "" }) {
               <p className="text-xs sm:text-sm text-gray-600 mb-2">
                 Product Code: <span className="font-mono">{selectedProduct.code}</span>
               </p>
-              <p className="text-xs sm:text-sm text-blue-600 mb-6">
+              <p className="text-xs sm:text-sm text-blue-600 mb-4">
                 Reseller: <span className="font-medium">{selectedProduct.reseller_name}</span>
               </p>
-              <button className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-800 transition mt-auto text-sm sm:text-base font-medium">
+
+              {/* Simple instruction note */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-xs sm:text-sm text-amber-800">
+                  📸 <strong>How to buy:</strong> Take a screenshot of this product or copy the details, then send via Instagram DM for pricing and availability.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  const productInfo = `Hi! I'm interested in this product:\n\n📦 ${selectedProduct.name}\n💰 Price: $${selectedProduct.price}\n🔢 Code: ${selectedProduct.code}\n👤 Reseller: ${selectedProduct.reseller_name}\n\nCan you please provide more details about availability and delivery?`;
+
+                  // Copy product info to clipboard silently
+                  navigator.clipboard.writeText(productInfo).catch(() => {
+                    // Silently fail if clipboard doesn't work
+                  });
+
+                  // Removed instruction modal for simpler approach
+
+                  // Direct Instagram link to open the person's chat/profile
+                  const instagramUrl = 'https://www.instagram.com/reseller.market_?igsh=ZndjaXd3eWZpenl6&utm_source=qr';
+
+                  // Try to open Instagram app first on mobile, then fallback to web
+                  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                  if (isMobile) {
+                    // Try Instagram app deep link first
+                    const appUrl = 'instagram://user?username=reseller.market_';
+                    window.location.href = appUrl;
+
+                    // Fallback to web version after 1.5 seconds if app doesn't open
+                    setTimeout(() => {
+                      window.open(instagramUrl, '_blank');
+                    }, 1500);
+                  } else {
+                    // Desktop: Open web version directly
+                    window.open(instagramUrl, '_blank');
+                  }
+                }}
+                className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-800 transition mt-auto text-sm sm:text-base font-medium"
+              >
                 Send DM on Instagram
               </button>
             </div>
