@@ -1,16 +1,148 @@
-# React + Vite
+# E-commerce Website
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive e-commerce platform built with React, Vite, Tailwind CSS, and Supabase.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+✅ **Dynamic Product Management**
+- Database-driven product catalog
+- Admin dashboard for CRUD operations
+- Image upload functionality
+- Category management
 
-## React Compiler
+✅ **Advanced Filtering & Search**
+- Real-time search across products
+- Category filtering
+- Price range filtering
+- Trending products filter
+- Multiple sorting options
+- Pagination (12 products per page)
 
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+✅ **Responsive Design**
+- Mobile-first approach
+- Optimized for all screen sizes
+- Touch-friendly interface
+- Progressive enhancement
 
-## Expanding the ESLint configuration
+✅ **Admin Panel**
+- Secure authentication
+- Product management
+- Category management
+- Settings management
+- Trending products control
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Tech Stack
+
+- **Frontend**: React 19, Vite 7, Tailwind CSS 4
+- **Backend**: Supabase (PostgreSQL)
+- **Routing**: React Router DOM
+- **UI Components**: Lucide React, RC Slider
+- **Storage**: Supabase Storage for images
+
+## Setup Instructions
+
+### 1. Clone Repository
+```bash
+git clone <your-repo-url>
+cd ecommerence
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Environment Setup
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Update .env with your Supabase credentials
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### 4. Database Setup
+1. Create a new Supabase project
+2. Run the SQL files in the `database/` folder in order:
+   - `01_schema.sql` - Creates tables and relationships
+   - `02_data.sql` - Inserts sample data
+   - `03_functions.sql` - Creates database functions
+   - `EMERGENCY_FIX.sql` - Disables RLS for admin functionality
+
+### 5. Run Development Server
+```bash
+npm run dev
+```
+
+### 6. Build for Production
+```bash
+npm run build
+```
+
+## Deployment
+
+### Netlify/Vercel Deployment
+1. Build the project: `npm run build`
+2. Deploy the `dist/` folder
+3. Set environment variables in your hosting platform
+4. Configure redirects for SPA routing
+
+### Environment Variables Required
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anon/public key
+
+## Admin Access
+
+- Access admin panel at: `/admindashboard`
+- Default credentials are set in your database
+- Change username/password from admin settings
+
+## Project Structure
+
+```
+src/
+├── frontend/          # React components
+├── lib/              # Supabase client and functions
+├── responsive.css    # Custom responsive styles
+└── App.jsx          # Main app component
+
+database/            # SQL schema and data files
+public/             # Static assets
+```
+
+## Features Overview
+
+### Customer Features
+- Browse products with responsive grid layout
+- Advanced filtering and search
+- Product detail modals
+- Mobile-optimized interface
+- Fast loading with pagination
+
+### Admin Features
+- Secure login system
+- Product CRUD operations
+- Category management
+- Image upload from device
+- Trending products management
+- Settings management (username/password)
+
+## Browser Support
+
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- Mobile browsers
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch
+3. Make changes
+4. Test thoroughly
+5. Submit pull request
+
+## License
+
+This project is licensed under the MIT License.

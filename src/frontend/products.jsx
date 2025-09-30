@@ -1,51 +1,76 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { getProducts } from "../lib/supabase";
 
-export default function Products() {
-  // --- Static demo data with multiple images for each product ---
-  const allProducts = [
-    {
-      id: 1,
-      name: "Classic Watch",
-      price: 1200,
-      code: "P-001",
-      description: "Elegant classic watch with stainless steel design.",
-      images: [
-        "https://www.shutterstock.com/image-photo/gold-fashionable-elegant-watch-classic-600nw-2477327319.jpg",
-      
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJl3b-S1cWsP-KOnDEmO4wD89VNAMhqnBt0VqywlfNpu7zI-7anh3FVkqMSY8L2h__X-w&usqp=CAU",
-        "https://usercontent.one/wp/www.reuvenwatches.com/wp-content/uploads/2023/02/KD13789-845x562-1.jpg",
-      ],
-    },
-    {
-      id: 2,
-      name: "Leather Bag",
-      price: 2500,
-      code: "P-002",
-      description: "Premium quality leather bag for casual and formal use.",
-      images: [
-        "https://media.istockphoto.com/id/1271796113/photo/women-is-holding-handbag-near-luxury-car.jpg?s=612x612&w=0&k=20&c=-jtXLmexNgRa-eKqA1X8UJ8QYWhW7XgDiWNmzuuCHmM=",
-        "https://img.drz.lazcdn.com/static/pk/p/b3d6d98af28fb1e015362b1d7f0484ed.jpg_720x720q80.jpg",
-        "https://milanoleathers.com/cdn/shop/files/421509684_18409301293001835_2836428067153985979_n.png?v=1716032361",
-        "https://image.made-in-china.com/318f0j00SEbUVOTZghqY/%E8%A7%86%E9%A2%91-1100128642440.mp4.webp",
-      ],
-    },
-    // ... add other products similarly
-  ];
+export default function Products({ filters = {}, searchQuery = "" }) {
+  // --- State for products from database ---
+  const [allProducts, setAllProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // --- Pagination logic ---
-  const itemsPerPage = 6;
+  const itemsPerPage = 12;
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const totalPages = Math.ceil(allProducts.length / itemsPerPage);
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-  const currentItems = allProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    try {
+      // Build filter object for API call
+      const apiFilters = {
+        search: searchQuery,
+        categoryId: filters.category || null,
+        brandIds: filters.brands && filters.brands.length > 0 ? filters.brands : null,
+        isTrending: filters.trending === 'trending' ? true : filters.trending === 'regular' ? false : null,
+        minPrice: filters.price ? filters.price[0] : null,
+        maxPrice: filters.price ? filters.price[1] : null,
+        sort: filters.sort || null
+      };
+
+      const { products, totalPages: pages, totalCount: count } = await getProducts(currentPage, itemsPerPage, apiFilters);
+
+      // Transform the data to match our component structure
+      const transformedProducts = products.map(product => ({
+        id: product.id,
+        name: product.name,
+        price: parseFloat(product.price),
+        code: product.code,
+        description: product.description,
+        reseller_name: product.reseller_name,
+        images: product.product_images
+          ?.sort((a, b) => a.display_order - b.display_order)
+          .map(img => img.image_url) || [],
+        category: product.categories?.name || 'Uncategorized',
+        is_trending: product.is_trending
+      }));
+
+      setAllProducts(transformedProducts);
+      setTotalPages(pages);
+      setTotalCount(count);
+    } catch (err) {
+      setError('Failed to load products. Please try again.');
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, filters, searchQuery]);
+
+  // --- Fetch products from database ---
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Reset to page 1 when filters or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchQuery]);
 
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -63,33 +88,79 @@ export default function Products() {
     setMainImage("");
   };
 
+  // --- Loading state ---
+  if (loading && allProducts.length === 0) {
+    return (
+      <section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-10">
+        <h2 className="text-xl sm:text-2xl font-bold text-black mb-4 sm:mb-6">Our Products</h2>
+        <div className="flex justify-center items-center h-48 sm:h-64">
+          <div className="text-sm sm:text-lg text-gray-600">Loading products...</div>
+        </div>
+      </section>
+    );
+  }
+
+  // --- Error state ---
+  if (error) {
+    return (
+      <section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-10">
+        <h2 className="text-xl sm:text-2xl font-bold text-black mb-4 sm:mb-6">Our Products</h2>
+        <div className="flex justify-center items-center h-48 sm:h-64">
+          <div className="text-red-600 text-sm sm:text-base text-center px-4">{error}</div>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="w-full max-w-7xl mx-auto px-6 py-10">
-      <h2 className="text-2xl font-bold text-black mb-6">Our Products</h2>
+    <section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 sm:mb-0">Our Products</h2>
+        <div className="text-sm text-gray-600">
+          {loading ? (
+            "Loading..."
+          ) : (
+            `Showing ${allProducts.length} of ${totalCount} products`
+          )}
+          {currentPage > 1 && ` (Page ${currentPage} of ${totalPages})`}
+        </div>
+      </div>
 
       {/* --- Cards Grid --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currentItems.map((item) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6">
+        {allProducts.map((item) => (
           <div
             key={item.id}
             onClick={() => openModal(item)}
-            className="bg-white border border-black rounded-xl shadow-sm hover:shadow-md transition p-4 flex flex-col cursor-pointer"
+            className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-3 sm:p-4 flex flex-col cursor-pointer relative group hover:scale-105"
           >
-            <img
-              src={item.images[0]}
-              alt={item.name}
-              className="w-full h-40 object-cover rounded-lg mb-3"
-            />
-            <h3 className="text-lg font-semibold text-black mb-1">
+            {/* Trending Badge */}
+            {item.is_trending && (
+              <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold z-10 shadow-lg">
+                🔥 TRENDING
+              </div>
+            )}
+            <div className="w-full aspect-square mb-3 rounded-lg overflow-hidden bg-gray-50 relative">
+              <img
+                src={item.images[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
+                alt={item.name}
+                className="absolute inset-0 min-w-full min-h-full w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                loading="lazy"
+                style={{ objectFit: 'cover', objectPosition: 'center', width: '100%', height: '100%', minWidth: '100%', minHeight: '100%' }}
+              />
+            </div>
+            <h3 className="text-base sm:text-lg font-semibold text-black mb-1 line-clamp-2">
               {item.name}
             </h3>
-            <p className="text-black font-bold text-sm mb-3">${item.price}</p>
+            <p className="text-gray-600 text-xs sm:text-sm mb-1">Code: {item.code}</p>
+            <p className="text-blue-600 text-xs sm:text-sm mb-1">Reseller: {item.reseller_name}</p>
+            <p className="text-black font-bold text-sm sm:text-base mb-3">${item.price}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 openModal(item);
               }}
-              className="mt-auto bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
+              className="mt-auto bg-black text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-800 transition text-xs sm:text-sm font-medium"
             >
               Show details
             </button>
@@ -97,89 +168,121 @@ export default function Products() {
         ))}
       </div>
 
+      {/* No Results State */}
+      {!loading && allProducts.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="text-gray-400 text-6xl mb-4">🔍</div>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No products found</h3>
+          <p className="text-gray-500 text-center">
+            {searchQuery ? (
+              <>No products match "<strong>{searchQuery}</strong>". Try adjusting your search or filters.</>
+            ) : (
+              "No products match your current filters. Try adjusting your selection."
+            )}
+          </p>
+        </div>
+      )}
+
       {/* --- Pagination --- */}
-      <div className="flex justify-center mt-8 space-x-2">
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6 sm:mt-8 space-x-1 sm:space-x-2">
         <button
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-3 py-1 border border-black rounded-lg text-sm disabled:opacity-50"
+          className="px-2 sm:px-3 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:bg-gray-50 transition-colors"
         >
-          Prev
+          <span className="hidden sm:inline">Prev</span>
+          <span className="sm:hidden">‹</span>
         </button>
 
-        {Array.from({ length: totalPages }, (_, i) => (
-          <button
-            key={i}
-            onClick={() => goToPage(i + 1)}
-            className={`px-3 py-1 border border-black rounded-lg text-sm ${
-              currentPage === i + 1
-                ? "bg-black text-white"
-                : "hover:bg-gray-200"
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
+        <div className="flex space-x-1 sm:space-x-2 max-w-xs sm:max-w-none overflow-x-auto scrollbar-hide">
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => goToPage(i + 1)}
+              className={`px-2 sm:px-3 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 ${
+                currentPage === i + 1
+                  ? "bg-black text-white border-black"
+                  : "bg-white hover:bg-gray-50"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
 
         <button
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="px-3 py-1 border border-black rounded-lg text-sm disabled:opacity-50"
+          className="px-2 sm:px-3 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:bg-gray-50 transition-colors"
         >
-          Next
+          <span className="hidden sm:inline">Next</span>
+          <span className="sm:hidden">›</span>
         </button>
-      </div>
+        </div>
+      )}
 
       {/* --- Modal --- */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-50">
-          <div className="bg-white w-full max-w-4xl rounded-xl shadow-lg p-6 relative flex flex-col lg:flex-row">
+        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-50 p-3 sm:p-4">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl shadow-lg p-4 sm:p-6 relative flex flex-col lg:flex-row">
             {/* Close button */}
             <button
               onClick={closeModal}
-              className="absolute top-3 right-3 text-black text-xl font-bold"
+              className="absolute top-3 right-3 text-black text-xl font-bold z-10 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
             >
               ✕
             </button>
 
             {/* Left - Images */}
-            <div className="lg:w-1/2 flex flex-col items-center">
-              <img
-                src={mainImage}
-                alt="Main"
-                className="w-72 h-72 object-cover rounded-lg border border-black mb-4"
-              />
-              <div className="flex space-x-2">
-                {selectedProduct.images.slice(0, 3).map((img, index) => (
-                  <img
+            <div className="lg:w-1/2 flex flex-col items-center mb-6 lg:mb-0">
+              <div className="w-full max-w-sm aspect-square rounded-lg border border-gray-200 mb-4 overflow-hidden bg-gray-50">
+                <img
+                  src={mainImage || 'https://via.placeholder.com/400x400?text=No+Image'}
+                  alt="Main"
+                  className="w-full h-full object-cover"
+                  style={{ objectFit: 'cover', objectPosition: 'center' }}
+                />
+              </div>
+              <div className="flex space-x-2 overflow-x-auto w-full justify-center pb-2">
+                {selectedProduct.images.slice(0, 4).map((img, index) => (
+                  <div
                     key={index}
-                    src={img}
-                    alt={`thumb-${index}`}
                     onClick={() => setMainImage(img)}
-                    className={`w-20 h-20 object-cover rounded-lg border cursor-pointer ${
-                      mainImage === img ? "border-2 border-black" : ""
+                    className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg border cursor-pointer flex-shrink-0 transition-all overflow-hidden bg-gray-50 ${
+                      mainImage === img ? "border-2 border-black shadow-lg" : "border-gray-200 hover:border-gray-400"
                     }`}
-                  />
+                  >
+                    <img
+                      src={img}
+                      alt={`thumb-${index}`}
+                      className="w-full h-full object-cover"
+                      style={{ objectFit: 'cover', objectPosition: 'center' }}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* Right - Details */}
-            <div className="lg:w-1/2 mt-6 lg:mt-0 lg:ml-6 flex flex-col">
-              <h2 className="text-2xl font-bold text-black mb-2">
+            <div className="lg:w-1/2 lg:ml-6 flex flex-col">
+              <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 pr-8">
                 {selectedProduct.name}
               </h2>
-              <p className="text-lg font-semibold text-black mb-2">
+              <p className="text-lg sm:text-xl font-semibold text-green-600 mb-3">
                 ${selectedProduct.price}
               </p>
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm sm:text-base text-gray-700 mb-3 leading-relaxed">
                 {selectedProduct.description}
               </p>
-              <p className="text-xs text-gray-600 mb-4">
-                Product Code: {selectedProduct.code}
+              <p className="text-xs sm:text-sm text-gray-600 mb-2">
+                Product Code: <span className="font-mono">{selectedProduct.code}</span>
               </p>
-              <button className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition mt-auto">
-                Send DM
+              <p className="text-xs sm:text-sm text-blue-600 mb-6">
+                Reseller: <span className="font-medium">{selectedProduct.reseller_name}</span>
+              </p>
+              <button className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-800 transition mt-auto text-sm sm:text-base font-medium">
+                Send DM on Instagram
               </button>
             </div>
           </div>
