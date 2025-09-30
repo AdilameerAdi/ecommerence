@@ -154,7 +154,7 @@ export default function Products({ filters = {}, searchQuery = "" }) {
             </h3>
             <p className="text-black text-sm sm:text-base mb-3">Shipping : {item.reseller_name}</p>
             <p className="text-black text-sm sm:text-base mb-3">Code : {item.code}</p>
-            <p className="text-black text-sm sm:text-base mb-3">${item.price}</p>
+            <p className="text-green-600 text-sm sm:text-base mb-3">${item.price}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -285,7 +285,10 @@ export default function Products({ filters = {}, searchQuery = "" }) {
               {/* Simple instruction note */}
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p className="text-xs sm:text-sm text-amber-800">
-                  📸 <strong>How to buy:</strong> Take a screenshot of this product or copy the details, then send via Instagram DM for pricing and availability.
+                  📸 <strong>How to buy:</strong> Take a screenshot of this product, then send via Instagram DM for pricing and availability.
+                </p>
+                 <p className="text-xs sm:text-sm text-amber-800">
+                  📸 <strong>Money back gurrantee:</strong> ✅ 100% Money-Back Guarantee – Full refund if your product doesn’t arrive or is damaged.
                 </p>
               </div>
 
