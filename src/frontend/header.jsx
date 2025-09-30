@@ -7,10 +7,10 @@ export default function Header({
 }) {
   return (
     <header
-      className={`w-full overflow-hidden bg-gradient-to-r from-black via-gray-900 to-black text-white shadow-md ${className}`}
+      className={`w-full overflow-hidden bg-gradient-to-r from-black via-gray-900 to-black text-white shadow-md relative z-40 ${className}`}
     >
       <div
-        className="flex whitespace-nowrap will-change-transform items-center py-2 sm:py-3"
+        className="flex whitespace-nowrap will-change-transform items-center py-1 sm:py-2 md:py-3"
         role="status"
         aria-label={message}
       >

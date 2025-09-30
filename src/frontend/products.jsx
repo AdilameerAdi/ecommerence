@@ -152,8 +152,6 @@ export default function Products({ filters = {}, searchQuery = "" }) {
             <h3 className="text-base sm:text-lg font-semibold text-black mb-1 line-clamp-2">
               {item.name}
             </h3>
-            <p className="text-gray-600 text-xs sm:text-sm mb-1">Code: {item.code}</p>
-            <p className="text-blue-600 text-xs sm:text-sm mb-1">Reseller: {item.reseller_name}</p>
             <p className="text-black font-bold text-sm sm:text-base mb-3">${item.price}</p>
             <button
               onClick={(e) => {
@@ -279,7 +277,7 @@ export default function Products({ filters = {}, searchQuery = "" }) {
                 Product Code: <span className="font-mono">{selectedProduct.code}</span>
               </p>
               <p className="text-xs sm:text-sm text-blue-600 mb-4">
-                Reseller: <span className="font-medium">{selectedProduct.reseller_name}</span>
+                Shipping: <span className="font-medium">{selectedProduct.reseller_name}</span>
               </p>
 
               {/* Simple instruction note */}

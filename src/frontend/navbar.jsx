@@ -22,33 +22,33 @@ export default function Navbar({ onSearch }) {
 
   return (
     <header className="sticky top-0 z-50 bg-white text-black shadow-md">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-2 sm:px-4 lg:px-6 py-2 sm:py-3 gap-2 sm:gap-4">
         {/* Logo + Name */}
         <div
-          className="flex items-center gap-2 cursor-pointer select-none flex-shrink-0"
+          className="flex items-center gap-1 sm:gap-2 cursor-pointer select-none flex-shrink-0"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <img
             src={logoimg}
             alt="Reseller Market Logo"
-            className="h-12 w-24 sm:h-16 sm:w-32 md:h-20 md:w-40 lg:h-[80px] lg:w-[200px] object-contain"
+            className="h-8 w-16 sm:h-12 sm:w-24 md:h-16 md:w-32 lg:h-[80px] lg:w-[200px] object-contain"
           />
         </div>
 
         {/* Search Box */}
-        <form onSubmit={handleSearch} className="relative flex-1 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg ml-4">
+        <form onSubmit={handleSearch} className="relative flex-1 max-w-[200px] sm:max-w-xs md:max-w-md lg:max-w-lg">
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder="Search..."
             value={query}
             onChange={handleInputChange}
-            className="w-full rounded-md border border-gray-300 bg-white text-black py-2 pl-8 sm:pl-10 pr-3 sm:pr-4 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-black transition-all"
+            className="w-full rounded-lg border border-gray-300 bg-white text-black py-1.5 sm:py-2 pl-6 sm:pl-10 pr-2 sm:pr-4 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-black transition-all shadow-sm"
           />
           <button
             type="submit"
-            className="absolute left-2 sm:left-3 top-2 sm:top-2.5 h-4 w-4 sm:h-5 sm:w-5 text-gray-500 hover:text-black transition-colors"
+            className="absolute left-1.5 sm:left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition-colors"
           >
-            <Search className="h-full w-full" />
+            <Search className="h-3 w-3 sm:h-4 sm:w-4" />
           </button>
         </form>
       </div>
