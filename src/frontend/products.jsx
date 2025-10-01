@@ -155,7 +155,7 @@ export default function Products({ filters = {}, searchQuery = "" }) {
           <p className="text-black text-xs sm:text-sm mb-3">Shipping : {item.reseller_name}</p>
 
             <p className="text-black text-sm sm:text-base mb-3">Code : {item.code}</p>
-            <p className="text-green-600 text-sm sm:text-base mb-3">${item.price}</p>
+            <p className="text-green-600 text-xl sm:text-base mb-3">${item.price}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
