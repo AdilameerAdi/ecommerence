@@ -5,6 +5,10 @@ export default function SaleBanner() {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // Modal state for product details
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [mainImage, setMainImage] = useState("");
 
   useEffect(() => {
     fetchTrendingProducts();
@@ -18,9 +22,11 @@ export default function SaleBanner() {
       const transformedProducts = products.map(product => ({
         id: product.id,
         name: product.name,
+        retail_price: product.retail_price ? parseFloat(product.retail_price) : null,
         price: parseFloat(product.price),
         ending_price: product.ending_price ? parseFloat(product.ending_price) : null,
         code: product.code,
+        description: product.description,
         reseller_name: product.reseller_name,
         images: product.product_images
           ?.sort((a, b) => a.display_order - b.display_order)
@@ -44,6 +50,22 @@ export default function SaleBanner() {
       return () => clearInterval(interval);
     }
   }, [trendingProducts.length]);
+
+  // Modal functions
+  const openModal = (product) => {
+    setSelectedProduct(product);
+    setMainImage(product.images[0]);
+  };
+
+  const closeModal = () => {
+    setSelectedProduct(null);
+    setMainImage("");
+  };
+
+  // Helper function to check if any price is missing
+  const hasMissingPrice = (product) => {
+    return !product.retail_price || !product.price || !product.ending_price;
+  };
 
   if (loading) {
     return (
@@ -83,18 +105,28 @@ export default function SaleBanner() {
           <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold mb-2 sm:mb-3 leading-tight">
             {currentProduct.name}
           </h2>
-          <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-300 mb-3 sm:mb-4">
-            ${currentProduct.price}{currentProduct.ending_price && (
-              <> to ${currentProduct.ending_price}</>
+          <div className="mb-3 sm:mb-4">
+            {hasMissingPrice(currentProduct) ? (
+              <p className="text-blue-300 text-lg sm:text-xl font-medium">
+                📞 DM to know about the price
+              </p>
+            ) : (
+              <>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-300">
+                  ${currentProduct.price}{currentProduct.ending_price && (
+                    <> to ${currentProduct.ending_price}</>
+                  )}
+                </div>
+                {currentProduct.retail_price && (
+                  <div className="text-lg sm:text-base text-red-500 mt-1">
+                    Retail: <span className="">${currentProduct.retail_price}</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
           <button
-            onClick={() => {
-              const productsSection = document.querySelector('[data-products-section]');
-              if (productsSection) {
-                productsSection.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
+            onClick={() => openModal(currentProduct)}
             className="bg-white text-black px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-gray-200 transition text-sm sm:text-base"
           >
             View Product
@@ -151,6 +183,132 @@ export default function SaleBanner() {
       <div className="absolute top-3 right-3 bg-black/40 text-white px-2.5 py-0.5 rounded-full text-xs sm:text-sm backdrop-blur-sm">
         {currentSlide + 1} / {trendingProducts.length}
       </div>
+
+      {/* Product Modal */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex justify-center items-center z-50 p-3 sm:p-4">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl shadow-lg p-4 sm:p-6 relative flex flex-col lg:flex-row">
+            {/* Close button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-3 right-3 text-black text-xl font-bold z-10 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+            >
+              ✕
+            </button>
+
+            {/* Left - Images */}
+            <div className="lg:w-1/2 flex flex-col items-center mb-6 lg:mb-0">
+              <div className="w-full max-w-sm aspect-square rounded-lg border border-gray-200 mb-4 overflow-hidden bg-gray-50 relative">
+                <img
+                  src={mainImage || 'https://via.placeholder.com/400x400?text=No+Image'}
+                  alt="Main"
+                  className="absolute inset-0 w-full h-full min-w-full min-h-full object-cover"
+                  style={{ objectFit: 'cover', objectPosition: 'center', width: '100%', height: '100%', minWidth: '100%', minHeight: '100%' }}
+                />
+              </div>
+              <div className="flex space-x-2 overflow-x-auto w-full justify-center pb-2">
+                {selectedProduct.images.slice(0, 4).map((img, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setMainImage(img)}
+                    className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg border cursor-pointer flex-shrink-0 transition-all overflow-hidden bg-gray-50 ${
+                      mainImage === img ? "border-2 border-black shadow-lg" : "border-gray-200 hover:border-gray-400"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`thumb-${index}`}
+                      className="w-full h-full object-cover"
+                      style={{ objectFit: 'cover', objectPosition: 'center' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right - Details */}
+            <div className="lg:w-1/2 lg:ml-6 flex flex-col">
+              <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 pr-8">
+                {selectedProduct.name}
+              </h2>
+              {hasMissingPrice(selectedProduct) ? (
+                <p className="text-blue-600 text-lg sm:text-xl mb-3 font-medium">
+                  📞 DM to know about the price
+                </p>
+              ) : (
+                <div className="mb-3">
+                  <p className="text-lg sm:text-xl font-semibold text-green-600">
+                    ${selectedProduct.price}{selectedProduct.ending_price && (
+                      <> to ${selectedProduct.ending_price}</>
+                    )}
+                  </p>
+                  {selectedProduct.retail_price && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      Retail: <span className="line-through">${selectedProduct.retail_price}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+              <p className="text-sm sm:text-base text-gray-700 mb-3 leading-relaxed">
+                {selectedProduct.description}
+              </p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-2">
+                Product Code: <span className="font-mono">{selectedProduct.code}</span>
+              </p>
+              <p className="text-xs sm:text-sm text-blue-600 mb-4">
+                Shipping: <span className="font-medium">{selectedProduct.reseller_name}</span>
+              </p>
+
+              {/* Simple instruction note */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-xs sm:text-sm text-amber-800">
+                  📸 <strong>How to buy:</strong> Take a screenshot of this product, then send via Instagram DM for pricing and availability.
+                </p>
+                <p className="text-xs sm:text-sm text-amber-800">
+                  📸 <strong>Money back guarantee:</strong> ✅ 100% Money-Back Guarantee – Full refund if your product doesn't arrive or is damaged.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  const priceText = selectedProduct.ending_price ?
+                    `$${selectedProduct.price} to $${selectedProduct.ending_price}` :
+                    `$${selectedProduct.price}`;
+                  const productInfo = `Hi! I'm interested in this product:\n\n📦 ${selectedProduct.name}\n💰 Price: ${priceText}\n🔢 Code: ${selectedProduct.code}\n👤 Reseller: ${selectedProduct.reseller_name}\n\nCan you please provide more details about availability and delivery?`;
+
+                  // Copy product info to clipboard silently
+                  navigator.clipboard.writeText(productInfo).catch(() => {
+                    // Silently fail if clipboard doesn't work
+                  });
+
+                  // Direct Instagram link to open the person's chat/profile
+                  const instagramUrl = 'https://www.instagram.com/reseller.market_?igsh=ZndjaXd3eWZpenl6&utm_source=qr';
+
+                  // Try to open Instagram app first on mobile, then fallback to web
+                  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                  if (isMobile) {
+                    // Try Instagram app deep link first
+                    const appUrl = 'instagram://user?username=reseller.market_';
+                    window.location.href = appUrl;
+
+                    // Fallback to web version after 1.5 seconds if app doesn't open
+                    setTimeout(() => {
+                      window.open(instagramUrl, '_blank');
+                    }, 1500);
+                  } else {
+                    // Desktop: Open web version directly
+                    window.open(instagramUrl, '_blank');
+                  }
+                }}
+                className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-800 transition mt-auto text-sm sm:text-base font-medium"
+              >
+                Send DM on Instagram
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

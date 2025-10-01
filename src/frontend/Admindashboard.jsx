@@ -47,6 +47,8 @@ export default function AdminDashboard() {
   const [brands, setBrands] = useState([]);
   const [newBrand, setNewBrand] = useState({ name: "", description: "" });
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -101,6 +103,7 @@ export default function AdminDashboard() {
     try {
       const { products: productData } = await getProducts(1, 100); // Get first 100 products
       setProducts(productData);
+      setFilteredProducts(productData);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -158,6 +161,33 @@ export default function AdminDashboard() {
     setImageFiles([]);
     setImageUploading(false);
   };
+
+  // Search functionality
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query.trim() === "") {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product => 
+        product.name.toLowerCase().includes(query.toLowerCase()) ||
+        product.code.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+    }
+  };
+
+  // Update filtered products when products change
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product => 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.code.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [products, searchQuery]);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-gray-100">
@@ -758,14 +788,36 @@ export default function AdminDashboard() {
 
     {/* Product List from Database */}
     <div className="mt-12">
-      <h2 className="text-xl font-bold mb-6 text-gray-900">Product List</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h2 className="text-xl font-bold text-gray-900">Product List</h2>
+        
+        {/* Search Bar */}
+        <div className="w-full sm:w-80">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by name or code..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
       {loading ? (
         <div className="text-center py-4">Loading products...</div>
-      ) : products.length === 0 ? (
-        <div className="text-center py-4 text-gray-500">No products found. Add your first product above!</div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-4 text-gray-500">
+          {searchQuery ? `No products found matching "${searchQuery}"` : "No products found. Add your first product above!"}
+        </div>
       ) : (
         <ul className="divide-y divide-gray-200 border border-gray-200 rounded-lg max-h-96 overflow-y-auto">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <li key={product.id} className="flex justify-between items-center px-5 py-4 hover:bg-gray-50 transition duration-200">
               <div>
                 <p className="font-semibold text-gray-800">{product.name}</p>
