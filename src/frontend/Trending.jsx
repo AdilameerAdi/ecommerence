@@ -19,6 +19,7 @@ export default function SaleBanner() {
         id: product.id,
         name: product.name,
         price: parseFloat(product.price),
+        ending_price: product.ending_price ? parseFloat(product.ending_price) : null,
         code: product.code,
         reseller_name: product.reseller_name,
         images: product.product_images
@@ -83,7 +84,9 @@ export default function SaleBanner() {
             {currentProduct.name}
           </h2>
           <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-300 mb-3 sm:mb-4">
-            ${currentProduct.price}
+            ${currentProduct.price}{currentProduct.ending_price && (
+              <> to ${currentProduct.ending_price}</>
+            )}
           </div>
           <button
             onClick={() => {

@@ -7,6 +7,11 @@ export default function Products({ filters = {}, searchQuery = "" }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Helper function to check if any price is missing
+  const hasMissingPrice = (product) => {
+    return !product.retail_price || !product.price || !product.ending_price;
+  };
+
   // --- Pagination logic ---
   const itemsPerPage = 12;
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,7 +40,9 @@ export default function Products({ filters = {}, searchQuery = "" }) {
       const transformedProducts = products.map(product => ({
         id: product.id,
         name: product.name,
+        retail_price: product.retail_price ? parseFloat(product.retail_price) : null,
         price: parseFloat(product.price),
+        ending_price: product.ending_price ? parseFloat(product.ending_price) : null,
         code: product.code,
         description: product.description,
         reseller_name: product.reseller_name,
@@ -154,8 +161,25 @@ export default function Products({ filters = {}, searchQuery = "" }) {
             </h3>
           <p className="text-black text-xs sm:text-sm mb-3">Shipping : {item.reseller_name}</p>
 
-            <p className="text-black text-sm sm:text-base mb-3">Code : {item.code}</p>
-            <p className="text-green-600 text-xl sm:text-base mb-3">${item.price}</p>
+            <p className="text-black text-xs sm:text-[15px] mb-3">
+              Code : {item.code}
+              {item.retail_price && (
+                <span className="ml-2 text-red-600">
+                  | Retail: ${item.retail_price}
+                </span>
+              )}
+            </p>
+            {hasMissingPrice(item) ? (
+              <p className="text-blue-600 text-sm sm:text-base mb-3 font-medium">
+                📞 DM to know about the price
+              </p>
+            ) : (
+              <p className="text-green-600 text-xl sm:text-base mb-3">
+                ${item.price}{item.ending_price && (
+                  <> to ${item.ending_price}</>
+                )}
+              </p>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -270,14 +294,27 @@ export default function Products({ filters = {}, searchQuery = "" }) {
               <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 pr-8">
                 {selectedProduct.name}
               </h2>
-              <p className="text-lg sm:text-xl font-semibold text-green-600 mb-3">
-                ${selectedProduct.price}
-              </p>
+              {hasMissingPrice(selectedProduct) ? (
+                <p className="text-blue-600 text-lg sm:text-xl mb-3 font-medium">
+                  📞 DM to know about the price
+                </p>
+              ) : (
+                <p className="text-lg sm:text-xl font-semibold text-green-600 mb-3">
+                  ${selectedProduct.price}{selectedProduct.ending_price && (
+                    <> to ${selectedProduct.ending_price}</>
+                  )}
+                </p>
+              )}
               <p className="text-sm sm:text-base text-gray-700 mb-3 leading-relaxed">
                 {selectedProduct.description}
               </p>
               <p className="text-xs sm:text-sm text-gray-600 mb-2">
                 Product Code: <span className="font-mono">{selectedProduct.code}</span>
+                {selectedProduct.retail_price && (
+                  <span className="ml-2">
+                    | Retail Price: <span className="font-semibold">${selectedProduct.retail_price}</span>
+                  </span>
+                )}
               </p>
               <p className="text-xs sm:text-sm text-blue-600 mb-4">
                 Shipping: <span className="font-medium">{selectedProduct.reseller_name}</span>
@@ -295,7 +332,10 @@ export default function Products({ filters = {}, searchQuery = "" }) {
 
               <button
                 onClick={() => {
-                  const productInfo = `Hi! I'm interested in this product:\n\n📦 ${selectedProduct.name}\n💰 Price: $${selectedProduct.price}\n🔢 Code: ${selectedProduct.code}\n👤 Reseller: ${selectedProduct.reseller_name}\n\nCan you please provide more details about availability and delivery?`;
+                  const priceText = selectedProduct.ending_price ?
+                    `$${selectedProduct.price} to $${selectedProduct.ending_price}` :
+                    `$${selectedProduct.price}`;
+                  const productInfo = `Hi! I'm interested in this product:\n\n📦 ${selectedProduct.name}\n💰 Price: ${priceText}\n🔢 Code: ${selectedProduct.code}\n👤 Reseller: ${selectedProduct.reseller_name}\n\nCan you please provide more details about availability and delivery?`;
 
                   // Copy product info to clipboard silently
                   navigator.clipboard.writeText(productInfo).catch(() => {

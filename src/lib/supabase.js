@@ -279,7 +279,9 @@ export const addProduct = async (productData) => {
       .insert({
         name: productData.name,
         code: productData.code,
+        retail_price: productData.retail_price || null,
         price: productData.price,
+        ending_price: productData.ending_price || null,
         description: productData.description,
         category_id: productData.category_id,
         reseller_name: productData.reseller_name,
@@ -323,7 +325,9 @@ export const updateProduct = async (productId, productData) => {
       .update({
         name: productData.name,
         code: productData.code,
+        retail_price: productData.retail_price || null,
         price: productData.price,
+        ending_price: productData.ending_price || null,
         description: productData.description,
         category_id: productData.category_id,
         reseller_name: productData.reseller_name,
@@ -380,6 +384,51 @@ export const deleteProduct = async (productId) => {
     return { success: true }
   } catch (error) {
     console.error('Error deleting product:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Sliding Content Management Functions
+export const getSlidingContent = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('sliding_content')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error && error.code !== 'PGRST116') throw error // PGRST116 is "no rows returned"
+    return data ? data.content : null
+  } catch (error) {
+    console.error('Error fetching sliding content:', error)
+    return null
+  }
+}
+
+export const updateSlidingContent = async (content) => {
+  try {
+    // First, deactivate all existing content
+    await supabase
+      .from('sliding_content')
+      .update({ is_active: false })
+      .eq('is_active', true)
+
+    // Then insert new content
+    const { data, error } = await supabase
+      .from('sliding_content')
+      .insert({
+        content: content,
+        is_active: true
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error updating sliding content:', error)
     return { success: false, error: error.message }
   }
 }
@@ -593,6 +642,7 @@ export const logoutAdmin = () => {
   sessionStorage.removeItem('adminUser')
 }
 
+
 // Image upload function
 export const uploadProductImage = async (file, productId = null) => {
   try {
@@ -634,3 +684,4 @@ export const deleteProductImage = async (imagePath) => {
     return { success: false, error: error.message }
   }
 }
+

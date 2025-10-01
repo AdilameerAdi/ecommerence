@@ -228,6 +228,16 @@ export default function AdminDashboard() {
           >
             Manage Settings
           </button>
+
+          <button
+            onClick={() => {
+              setActivePage("slidingContent");
+              setShowMobileMenu(false);
+            }}
+            className="w-full px-3 lg:px-4 py-3 lg:py-4 rounded-lg text-left hover:bg-gray-800 text-sm lg:text-base xl:text-lg transition-colors font-medium"
+          >
+            Sliding Content
+          </button>
         </div>
 
         <button
@@ -505,7 +515,9 @@ export default function AdminDashboard() {
         const productData = {
           name: formData.get('name'),
           code: formData.get('code'),
+          retail_price: formData.get('retail_price') ? parseFloat(formData.get('retail_price')) : null,
           price: parseFloat(formData.get('price')),
+          ending_price: formData.get('ending_price') ? parseFloat(formData.get('ending_price')) : null,
           description: formData.get('description'),
           category_id: parseInt(formData.get('category_id')),
           reseller_name: formData.get('reseller_name'),
@@ -551,15 +563,39 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Product Price */}
+      {/* Retail Price */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">Price</label>
+        <label className="block text-gray-700 font-medium mb-2">Retail Price</label>
+        <input
+          type="number"
+          name="retail_price"
+          step="0.01"
+          placeholder="Enter retail price (optional)"
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      {/* Starting Price */}
+      <div>
+        <label className="block text-gray-700 font-medium mb-2">Starting Price</label>
         <input
           type="number"
           name="price"
           step="0.01"
-          placeholder="Enter price"
+          placeholder="Enter starting price"
           required
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      {/* Ending Price */}
+      <div>
+        <label className="block text-gray-700 font-medium mb-2">Ending Price</label>
+        <input
+          type="number"
+          name="ending_price"
+          step="0.01"
+          placeholder="Enter ending price (optional)"
           className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
         />
       </div>
@@ -806,7 +842,9 @@ export default function AdminDashboard() {
               const productData = {
                 name: formData.get('name'),
                 code: formData.get('code'),
+                retail_price: formData.get('retail_price') ? parseFloat(formData.get('retail_price')) : null,
                 price: parseFloat(formData.get('price')),
+                ending_price: formData.get('ending_price') ? parseFloat(formData.get('ending_price')) : null,
                 description: formData.get('description'),
                 category_id: parseInt(formData.get('category_id')),
                 reseller_name: formData.get('reseller_name'),
@@ -857,16 +895,42 @@ export default function AdminDashboard() {
               />
             </div>
 
-            {/* Product Price */}
+            {/* Retail Price */}
             <div>
-              <label className="block text-gray-700 font-medium mb-2">Price</label>
+              <label className="block text-gray-700 font-medium mb-2">Retail Price</label>
+              <input
+                type="number"
+                name="retail_price"
+                step="0.01"
+                defaultValue={editingProduct.retail_price}
+                placeholder="Enter retail price (optional)"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            {/* Starting Price */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">Starting Price</label>
               <input
                 type="number"
                 name="price"
                 step="0.01"
                 defaultValue={editingProduct.price}
-                placeholder="Enter price"
+                placeholder="Enter starting price"
                 required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            {/* Ending Price */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">Ending Price</label>
+              <input
+                type="number"
+                name="ending_price"
+                step="0.01"
+                defaultValue={editingProduct.ending_price}
+                placeholder="Enter ending price (optional)"
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -1323,8 +1387,76 @@ export default function AdminDashboard() {
   </div>
 )}
 
+{activePage === "slidingContent" && (
+  <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg sm:rounded-2xl p-4 sm:p-6 lg:p-10">
+    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-6 sm:mb-8 text-center border-b border-gray-300 pb-4">
+      Manage Sliding Content
+    </h1>
 
-      
+    <div className="p-6 border border-gray-200 rounded-xl shadow-sm">
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Update Marquee Text</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        This content will appear as a scrolling text on the top of the landing page.
+      </p>
+
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          const content = formData.get('content');
+
+          if (!content || content.trim() === '') {
+            alert('Please enter some content');
+            return;
+          }
+
+          setLoading(true);
+          try {
+            const { updateSlidingContent } = await import('../lib/supabase');
+            const result = await updateSlidingContent(content);
+
+            if (result.success) {
+              alert('Sliding content updated successfully!');
+            } else {
+              alert('Error updating content: ' + result.error);
+            }
+          } catch (error) {
+            alert('Error: ' + error.message);
+          }
+          setLoading(false);
+        }}
+        className="space-y-4"
+      >
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            Enter Message (2-3 lines)
+          </label>
+          <textarea
+            name="content"
+            rows="3"
+            placeholder="Enter your announcement or message here. It will scroll continuously on the landing page..."
+            required
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black resize-none"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Tip: Keep it short and engaging. This will be displayed as scrolling text.
+          </p>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition disabled:opacity-50 font-medium"
+        >
+          {loading ? 'Updating...' : 'Update Sliding Content'}
+        </button>
+      </form>
+    </div>
+  </div>
+)}
+
+
+
       </div>
     </div>
   );
