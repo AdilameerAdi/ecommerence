@@ -13,7 +13,7 @@ export default function Products({ filters = {}, searchQuery = "" }) {
   };
 
   // --- Pagination logic ---
-  const itemsPerPage = 12;
+  const itemsPerPage = 16;
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -53,6 +53,7 @@ export default function Products({ filters = {}, searchQuery = "" }) {
         is_trending: product.is_trending,
         created_at: product.created_at // Keep creation date for mixing logic
       }));
+      
 
       // Create mixed display with smart category distribution
       const trendingProducts = transformedProducts.filter(product => product.is_trending);
@@ -154,8 +155,12 @@ export default function Products({ filters = {}, searchQuery = "" }) {
       
       // Combine trending first, then distributed regular products
       const mixedProducts = [...trendingProducts, ...distributedRegularProducts];
+for (let i = mixedProducts.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [mixedProducts[i], mixedProducts[j]] = [mixedProducts[j], mixedProducts[i]];
+}
 
-      setAllProducts(mixedProducts);
+setAllProducts(mixedProducts);
       setTotalPages(pages);
       setTotalCount(count);
     } catch (err) {
