@@ -13,7 +13,7 @@ export default function Products({ filters = {}, searchQuery = "" }) {
   };
 
   // --- Pagination logic ---
-  const itemsPerPage = 16;
+  const itemsPerPage = 20;
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
