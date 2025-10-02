@@ -70,6 +70,7 @@ export const getProducts = async (page = 1, itemsPerPage = 12, filters = {}) => 
           query = query.order('created_at', { ascending: false })
       }
     } else {
+      // Default: newest first (original behavior)
       query = query.order('created_at', { ascending: false })
     }
 

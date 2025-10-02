@@ -50,10 +50,112 @@ export default function Products({ filters = {}, searchQuery = "" }) {
           ?.sort((a, b) => a.display_order - b.display_order)
           .map(img => img.image_url) || [],
         category: product.categories?.name || 'Uncategorized',
-        is_trending: product.is_trending
+        is_trending: product.is_trending,
+        created_at: product.created_at // Keep creation date for mixing logic
       }));
 
-      setAllProducts(transformedProducts);
+      // Create mixed display with smart category distribution
+      const trendingProducts = transformedProducts.filter(product => product.is_trending);
+      const regularProducts = transformedProducts.filter(product => !product.is_trending);
+      
+      // Function to distribute products evenly by category
+      const distributeProductsByCategory = (products) => {
+        if (products.length === 0) return [];
+        
+        // Group products by category
+        const categoryGroups = {};
+        products.forEach(product => {
+          const category = product.category || 'Uncategorized';
+          if (!categoryGroups[category]) {
+            categoryGroups[category] = [];
+          }
+          categoryGroups[category].push(product);
+        });
+        
+        // Shuffle products within each category
+        Object.keys(categoryGroups).forEach(category => {
+          categoryGroups[category] = categoryGroups[category].sort(() => Math.random() - 0.5);
+        });
+        
+        // Get all categories sorted by product count (largest first)
+        const categories = Object.keys(categoryGroups).sort((a, b) => 
+          categoryGroups[b].length - categoryGroups[a].length
+        );
+        
+        const distributed = [];
+        const itemsPerRow = 4; // Based on grid layout (xl:grid-cols-4)
+        let categoryPointers = {};
+        
+        // Initialize pointers for each category
+        categories.forEach(category => {
+          categoryPointers[category] = 0;
+        });
+        
+        // Distribute products row by row
+        while (distributed.length < products.length) {
+          const currentRow = [];
+          const usedCategoriesInRow = new Set();
+          
+          // Fill current row with max variety
+          for (let i = 0; i < itemsPerRow && distributed.length + currentRow.length < products.length; i++) {
+            let selectedProduct = null;
+            let selectedCategory = null;
+            
+            // Try to find a product from a category not used in current row
+            for (const category of categories) {
+              if (!usedCategoriesInRow.has(category) && 
+                  categoryPointers[category] < categoryGroups[category].length) {
+                selectedProduct = categoryGroups[category][categoryPointers[category]];
+                selectedCategory = category;
+                break;
+              }
+            }
+            
+            // If no unused category available, allow max 2 products from same category per row
+            if (!selectedProduct) {
+              for (const category of categories) {
+                const categoryCountInRow = currentRow.filter(p => p.category === category).length;
+                if (categoryCountInRow < 2 && categoryPointers[category] < categoryGroups[category].length) {
+                  selectedProduct = categoryGroups[category][categoryPointers[category]];
+                  selectedCategory = category;
+                  break;
+                }
+              }
+            }
+            
+            // If still no product found, take any available product
+            if (!selectedProduct) {
+              for (const category of categories) {
+                if (categoryPointers[category] < categoryGroups[category].length) {
+                  selectedProduct = categoryGroups[category][categoryPointers[category]];
+                  selectedCategory = category;
+                  break;
+                }
+              }
+            }
+            
+            if (selectedProduct) {
+              currentRow.push(selectedProduct);
+              usedCategoriesInRow.add(selectedCategory);
+              categoryPointers[selectedCategory]++;
+            } else {
+              break; // No more products available
+            }
+          }
+          
+          distributed.push(...currentRow);
+        }
+        
+        return distributed;
+      };
+      
+      // Apply smart distribution to regular products
+      const distributedRegularProducts = distributeProductsByCategory(regularProducts);
+      
+      // Combine trending first, then distributed regular products
+      const mixedProducts = [...trendingProducts, ...distributedRegularProducts];
+
+      setAllProducts(mixedProducts);
       setTotalPages(pages);
       setTotalCount(count);
     } catch (err) {
