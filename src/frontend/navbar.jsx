@@ -35,26 +35,9 @@ export default function Navbar({ onSearch }) {
           />
         </div>
         {/* Instagram DM Button */}
- <button
+        <button
           onClick={() => {
-            const instagramUrl = 'https://www.instagram.com/reseller.market_?igsh=ZndjaXd3eWZpenl6&utm_source=qr';
-            
-            // Try to open Instagram app first on mobile, then fallback to web
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            if (isMobile) {
-              // Try Instagram app deep link first
-              const appUrl = 'instagram://user?username=reseller.market_';
-              window.location.href = appUrl;
-              
-              // Fallback to web version after 1.5 seconds if app doesn't open
-              setTimeout(() => {
-                window.open(instagramUrl, '_blank');
-              }, 1500);
-            } else {
-              // Desktop: Open web version directly
-              window.open(instagramUrl, '_blank');
-            }
+            window.open('https://www.instagram.com/reseller.market_?igsh=ZndjaXd3eWZpenl6&utm_source=qr', '_blank');
           }}
           className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-sm hover:shadow-md text-xs sm:text-sm font-medium flex-shrink-0"
         >
