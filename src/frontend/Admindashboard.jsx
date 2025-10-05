@@ -19,6 +19,7 @@ import {
   updateAdminUsername,
   uploadProductImage,
 } from "../lib/supabase";
+import Analytics from "./Analytics";
 
 export default function AdminDashboard() {
   const [activePage, setActivePage] = useState("home");
@@ -267,6 +268,16 @@ export default function AdminDashboard() {
             className="w-full px-3 lg:px-4 py-3 lg:py-4 rounded-lg text-left hover:bg-gray-800 text-sm lg:text-base xl:text-lg transition-colors font-medium"
           >
             Sliding Content
+          </button>
+
+          <button
+            onClick={() => {
+              setActivePage("analytics");
+              setShowMobileMenu(false);
+            }}
+            className="w-full px-3 lg:px-4 py-3 lg:py-4 rounded-lg text-left hover:bg-gray-800 text-sm lg:text-base xl:text-lg transition-colors font-medium"
+          >
+            Analytics
           </button>
         </div>
 
@@ -1505,6 +1516,10 @@ export default function AdminDashboard() {
       </form>
     </div>
   </div>
+)}
+
+{activePage === "analytics" && (
+  <Analytics />
 )}
 
 

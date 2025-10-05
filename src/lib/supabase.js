@@ -686,3 +686,237 @@ export const deleteProductImage = async (imagePath) => {
   }
 }
 
+// Analytics Functions
+
+// Track user analytics (page views, unique visitors)
+export const trackUserAnalytics = async (ipAddress, userAgent, sessionId) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_analytics')
+      .upsert({
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        session_id: sessionId,
+        page_views: 1,
+        last_visit: new Date().toISOString(),
+        visit_date: new Date().toISOString().split('T')[0]
+      }, {
+        onConflict: 'ip_address,visit_date',
+        ignoreDuplicates: false
+      })
+      .select()
+
+    if (error) throw error
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error tracking user analytics:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Track product analytics (views, clicks, DM clicks)
+export const trackProductAnalytics = async (productId, actionType, ipAddress, sessionId, userAgent, referrer = null) => {
+  try {
+    const { data, error } = await supabase
+      .from('product_analytics')
+      .insert({
+        product_id: productId,
+        action_type: actionType,
+        ip_address: ipAddress,
+        session_id: sessionId,
+        user_agent: userAgent,
+        referrer: referrer,
+        action_timestamp: new Date().toISOString()
+      })
+      .select()
+
+    if (error) throw error
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error tracking product analytics:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Track search analytics
+export const trackSearchAnalytics = async (searchQuery, ipAddress, sessionId, resultsCount, userAgent, searchSource = 'navbar') => {
+  try {
+    const { data, error } = await supabase
+      .from('search_analytics')
+      .insert({
+        search_query: searchQuery,
+        ip_address: ipAddress,
+        session_id: sessionId,
+        results_count: resultsCount,
+        user_agent: userAgent,
+        search_source: searchSource,
+        search_timestamp: new Date().toISOString()
+      })
+      .select()
+
+    if (error) throw error
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error tracking search analytics:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Track page analytics
+export const trackPageAnalytics = async (pagePath, pageTitle, ipAddress, sessionId, userAgent, referrer = null, visitDuration = 0) => {
+  try {
+    const { data, error } = await supabase
+      .from('page_analytics')
+      .insert({
+        page_path: pagePath,
+        page_title: pageTitle,
+        ip_address: ipAddress,
+        session_id: sessionId,
+        user_agent: userAgent,
+        referrer: referrer,
+        visit_duration: visitDuration,
+        page_timestamp: new Date().toISOString()
+      })
+      .select()
+
+    if (error) throw error
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error tracking page analytics:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Get unique visitors by time period
+export const getUniqueVisitors = async (startDate, endDate) => {
+  try {
+    const { data, error } = await supabase.rpc('get_unique_visitors', {
+      start_date: startDate,
+      end_date: endDate
+    })
+
+    if (error) throw error
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error('Error fetching unique visitors:', error)
+    return { success: false, error: error.message, data: [] }
+  }
+}
+
+// Get product analytics summary
+export const getProductAnalyticsSummary = async (startDate = null, endDate = null) => {
+  try {
+    const { data, error } = await supabase.rpc('get_product_analytics_summary', {
+      start_date: startDate,
+      end_date: endDate
+    })
+
+    if (error) throw error
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error('Error fetching product analytics:', error)
+    return { success: false, error: error.message, data: [] }
+  }
+}
+
+// Get search analytics summary
+export const getSearchAnalyticsSummary = async (startDate = null, endDate = null) => {
+  try {
+    const { data, error } = await supabase.rpc('get_search_analytics_summary', {
+      start_date: startDate,
+      end_date: endDate
+    })
+
+    if (error) throw error
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error('Error fetching search analytics:', error)
+    return { success: false, error: error.message, data: [] }
+  }
+}
+
+// Get daily analytics overview
+export const getDailyAnalyticsOverview = async (targetDate = null) => {
+  try {
+    const { data, error } = await supabase.rpc('get_daily_analytics_overview', {
+      target_date: targetDate || new Date().toISOString().split('T')[0]
+    })
+
+    if (error) throw error
+    return { success: true, data: data?.[0] || null }
+  } catch (error) {
+    console.error('Error fetching daily analytics:', error)
+    return { success: false, error: error.message, data: null }
+  }
+}
+
+// Get analytics data for charts (last 7 days, 30 days)
+export const getAnalyticsChartData = async (days = 7) => {
+  try {
+    const endDate = new Date().toISOString().split('T')[0]
+    const startDate = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    
+    const [visitorsResult, dailyOverviewResult] = await Promise.all([
+      getUniqueVisitors(startDate, endDate),
+      getDailyAnalyticsOverview()
+    ])
+
+    return {
+      success: true,
+      data: {
+        visitors: visitorsResult.data || [],
+        dailyOverview: dailyOverviewResult.data
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching analytics chart data:', error)
+    return { success: false, error: error.message, data: null }
+  }
+}
+
+// Utility function to get client IP (for tracking)
+export const getClientIP = async () => {
+  try {
+    // Try to get IP from a public service
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip || 'unknown';
+  } catch (error) {
+    console.error('Error getting client IP:', error);
+    // Fallback to a generated identifier based on browser fingerprint
+    return generateBrowserFingerprint();
+  }
+}
+
+// Generate a browser fingerprint as fallback
+export const generateBrowserFingerprint = () => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.textBaseline = 'top';
+  ctx.font = '14px Arial';
+  ctx.fillText('Browser fingerprint', 2, 2);
+  
+  const fingerprint = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width + 'x' + screen.height,
+    new Date().getTimezoneOffset(),
+    canvas.toDataURL()
+  ].join('|');
+  
+  // Create a simple hash
+  let hash = 0;
+  for (let i = 0; i < fingerprint.length; i++) {
+    const char = fingerprint.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  return 'fp_' + Math.abs(hash).toString(36);
+}
+
+// Utility function to generate session ID
+export const generateSessionId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2)
+}
+

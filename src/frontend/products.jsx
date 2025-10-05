@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getProducts } from "../lib/supabase";
+import { getProducts, trackProductAnalytics, trackUserAnalytics, generateSessionId, getClientIP } from "../lib/supabase";
 
 export default function Products({ filters = {}, searchQuery = "" }) {
   // --- State for products from database ---
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Analytics tracking
+  const [sessionId] = useState(() => generateSessionId());
+  const [clientIP, setClientIP] = useState('unknown');
 
   // Helper function to check if any price is missing
   const hasMissingPrice = (product) => {
@@ -171,10 +175,24 @@ setAllProducts(mixedProducts);
     }
   }, [currentPage, filters, searchQuery]);
 
+  // Initialize client IP
+  useEffect(() => {
+    const initIP = async () => {
+      const ip = await getClientIP();
+      setClientIP(ip);
+    };
+    initIP();
+  }, []);
+
   // --- Fetch products from database ---
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    
+    // Track page view when IP is available
+    if (clientIP !== 'unknown') {
+      trackUserAnalytics(clientIP, navigator.userAgent, sessionId);
+    }
+  }, [fetchProducts, clientIP, sessionId]);
 
   // Reset to page 1 when filters or search changes
   useEffect(() => {
@@ -195,6 +213,9 @@ setAllProducts(mixedProducts);
   const openModal = (product) => {
     setSelectedProduct(product);
     setMainImage(product.images[0]);
+    
+    // Track modal open
+    trackProductAnalytics(product.id, 'modal_open', clientIP, sessionId, navigator.userAgent);
   };
 
   const closeModal = () => {
@@ -245,7 +266,11 @@ setAllProducts(mixedProducts);
         {allProducts.map((item) => (
           <div
             key={item.id}
-            onClick={() => openModal(item)}
+            onClick={() => {
+              // Track product view
+              trackProductAnalytics(item.id, 'view', clientIP, sessionId, navigator.userAgent);
+              openModal(item);
+            }}
             className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-3 sm:p-4 flex flex-col cursor-pointer relative group hover:scale-105"
           >
             {/* Trending Badge */}
@@ -290,6 +315,8 @@ setAllProducts(mixedProducts);
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                // Track button click
+                trackProductAnalytics(item.id, 'click', clientIP, sessionId, navigator.userAgent);
                 openModal(item);
               }}
               className="mt-auto bg-black text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-800 transition text-xs sm:text-sm font-medium"
@@ -439,6 +466,9 @@ setAllProducts(mixedProducts);
 
               <button
                 onClick={() => {
+                  // Track DM click
+                  trackProductAnalytics(selectedProduct.id, 'dm_click', clientIP, sessionId, navigator.userAgent);
+                  
                   const priceText = selectedProduct.ending_price ?
                     `$${selectedProduct.price} to $${selectedProduct.ending_price}` :
                     `$${selectedProduct.price}`;
