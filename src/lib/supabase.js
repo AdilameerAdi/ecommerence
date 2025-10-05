@@ -691,22 +691,27 @@ export const deleteProductImage = async (imagePath) => {
 // Track user analytics (page views, unique visitors)
 export const trackUserAnalytics = async (ipAddress, userAgent, sessionId) => {
   try {
+    console.log('Tracking user analytics:', { ipAddress, sessionId });
+
     const { data, error } = await supabase
       .from('user_analytics')
-      .upsert({
+      .insert({
         ip_address: ipAddress,
         user_agent: userAgent,
         session_id: sessionId,
         page_views: 1,
+        first_visit: new Date().toISOString(),
         last_visit: new Date().toISOString(),
         visit_date: new Date().toISOString().split('T')[0]
-      }, {
-        onConflict: 'ip_address,visit_date',
-        ignoreDuplicates: false
       })
       .select()
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase error in trackUserAnalytics:', error);
+      throw error;
+    }
+
+    console.log('User analytics tracked successfully:', data);
     return { success: true, data }
   } catch (error) {
     console.error('Error tracking user analytics:', error)
@@ -717,6 +722,8 @@ export const trackUserAnalytics = async (ipAddress, userAgent, sessionId) => {
 // Track product analytics (views, clicks, DM clicks)
 export const trackProductAnalytics = async (productId, actionType, ipAddress, sessionId, userAgent, referrer = null) => {
   try {
+    console.log('Tracking product analytics:', { productId, actionType, ipAddress, sessionId });
+
     const { data, error } = await supabase
       .from('product_analytics')
       .insert({
@@ -730,7 +737,12 @@ export const trackProductAnalytics = async (productId, actionType, ipAddress, se
       })
       .select()
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase error in trackProductAnalytics:', error);
+      throw error;
+    }
+
+    console.log('Product analytics tracked successfully:', data);
     return { success: true, data }
   } catch (error) {
     console.error('Error tracking product analytics:', error)
@@ -880,11 +892,14 @@ export const getClientIP = async () => {
     // Try to get IP from a public service
     const response = await fetch('https://api.ipify.org?format=json');
     const data = await response.json();
-    return data.ip || 'unknown';
+    console.log('Got IP from ipify:', data.ip);
+    return data.ip || '127.0.0.1';
   } catch (error) {
     console.error('Error getting client IP:', error);
-    // Fallback to a generated identifier based on browser fingerprint
-    return generateBrowserFingerprint();
+    // Fallback to localhost IP for testing
+    const fallbackIP = '127.0.0.1';
+    console.log('Using fallback IP:', fallbackIP);
+    return fallbackIP;
   }
 }
 

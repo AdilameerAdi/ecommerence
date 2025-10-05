@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS product_analytics (
     product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
     ip_address INET NOT NULL,
     session_id VARCHAR(255),
-    action_type VARCHAR(50) NOT NULL, -- 'view', 'click', 'dm_click', 'modal_open'
+    action_type VARCHAR(50) NOT NULL, -- 'card_click', 'view_details', 'dm_click', 'modal_open'
     action_timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     user_agent TEXT,
     referrer TEXT,
@@ -102,11 +102,11 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         p.id as product_id,
         p.name as product_name,
-        COUNT(CASE WHEN pa.action_type = 'view' THEN 1 END) as total_views,
-        COUNT(CASE WHEN pa.action_type = 'click' THEN 1 END) as total_clicks,
+        COUNT(CASE WHEN pa.action_type = 'card_click' THEN 1 END) as total_views,
+        COUNT(CASE WHEN pa.action_type = 'view_details' THEN 1 END) as total_clicks,
         COUNT(CASE WHEN pa.action_type = 'dm_click' THEN 1 END) as total_dm_clicks,
         COUNT(CASE WHEN pa.action_type = 'modal_open' THEN 1 END) as total_modal_opens
     FROM products p
@@ -161,7 +161,7 @@ BEGIN
         (SELECT COUNT(*) FROM page_analytics WHERE page_timestamp::DATE = target_date) as total_page_views,
         (SELECT COUNT(DISTINCT ip_address) FROM user_analytics WHERE visit_date = target_date) as unique_visitors,
         (SELECT COUNT(*) FROM search_analytics WHERE search_timestamp::DATE = target_date) as total_searches,
-        (SELECT COUNT(*) FROM product_analytics WHERE action_type = 'view' AND action_timestamp::DATE = target_date) as total_product_views,
+        (SELECT COUNT(*) FROM product_analytics WHERE action_type = 'card_click' AND action_timestamp::DATE = target_date) as total_product_views,
         (SELECT COUNT(*) FROM product_analytics WHERE action_type = 'dm_click' AND action_timestamp::DATE = target_date) as total_dm_clicks;
 END;
 $$ LANGUAGE plpgsql;

@@ -33,12 +33,21 @@ export default function Analytics() {
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+      console.log('Fetching analytics data for date range:', { startDate, endDate });
+
       const [visitorsResult, productsResult, searchesResult, dailyResult] = await Promise.all([
         getUniqueVisitors(startDate, endDate),
         getProductAnalyticsSummary(startDate, endDate),
         getSearchAnalyticsSummary(startDate, endDate),
         getDailyAnalyticsOverview()
       ]);
+
+      console.log('Analytics results:', {
+        visitorsResult,
+        productsResult,
+        searchesResult,
+        dailyResult
+      });
 
       setAnalyticsData({
         visitors: visitorsResult.data || [],
@@ -118,10 +127,10 @@ export default function Analytics() {
                 Product
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Views
+                Card Clicks
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Clicks
+                View Details
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 DM Clicks

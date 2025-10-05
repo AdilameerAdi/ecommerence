@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getProducts, trackProductAnalytics, trackUserAnalytics, generateSessionId, getClientIP } from "../lib/supabase";
+import { getProducts, trackProductAnalytics, trackUserAnalytics, trackSearchAnalytics, generateSessionId, getClientIP } from "../lib/supabase";
 
 export default function Products({ filters = {}, searchQuery = "" }) {
   // --- State for products from database ---
@@ -167,13 +167,18 @@ for (let i = mixedProducts.length - 1; i > 0; i--) {
 setAllProducts(mixedProducts);
       setTotalPages(pages);
       setTotalCount(count);
+
+      // Track search if it's a search query
+      if (searchQuery && searchQuery.trim() && clientIP !== 'unknown') {
+        await trackSearchAnalytics(searchQuery.trim(), clientIP, sessionId, count, navigator.userAgent, 'main');
+      }
     } catch (err) {
       setError('Failed to load products. Please try again.');
       console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, searchQuery]);
+  }, [currentPage, filters, searchQuery, clientIP, sessionId]);
 
   // Initialize client IP
   useEffect(() => {
@@ -190,7 +195,7 @@ setAllProducts(mixedProducts);
     
     // Track page view when IP is available
     if (clientIP !== 'unknown') {
-      trackUserAnalytics(clientIP, navigator.userAgent, sessionId);
+      trackUserAnalytics(clientIP, navigator.userAgent, sessionId).catch(console.error);
     }
   }, [fetchProducts, clientIP, sessionId]);
 
@@ -210,12 +215,12 @@ setAllProducts(mixedProducts);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [mainImage, setMainImage] = useState("");
 
-  const openModal = (product) => {
+  const openModal = async (product) => {
     setSelectedProduct(product);
     setMainImage(product.images[0]);
-    
+
     // Track modal open
-    trackProductAnalytics(product.id, 'modal_open', clientIP, sessionId, navigator.userAgent);
+    await trackProductAnalytics(product.id, 'modal_open', clientIP, sessionId, navigator.userAgent);
   };
 
   const closeModal = () => {
@@ -266,9 +271,9 @@ setAllProducts(mixedProducts);
         {allProducts.map((item) => (
           <div
             key={item.id}
-            onClick={() => {
-              // Track product view
-              trackProductAnalytics(item.id, 'view', clientIP, sessionId, navigator.userAgent);
+            onClick={async () => {
+              // Track product card click
+              await trackProductAnalytics(item.id, 'card_click', clientIP, sessionId, navigator.userAgent);
               openModal(item);
             }}
             className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-3 sm:p-4 flex flex-col cursor-pointer relative group hover:scale-105"
@@ -313,10 +318,10 @@ setAllProducts(mixedProducts);
               </p>
             )}
             <button
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
-                // Track button click
-                trackProductAnalytics(item.id, 'click', clientIP, sessionId, navigator.userAgent);
+                // Track view details button click
+                await trackProductAnalytics(item.id, 'view_details', clientIP, sessionId, navigator.userAgent);
                 openModal(item);
               }}
               className="mt-auto bg-black text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-800 transition text-xs sm:text-sm font-medium"
@@ -465,9 +470,9 @@ setAllProducts(mixedProducts);
               </div>
 
               <button
-                onClick={() => {
+                onClick={async () => {
                   // Track DM click
-                  trackProductAnalytics(selectedProduct.id, 'dm_click', clientIP, sessionId, navigator.userAgent);
+                  await trackProductAnalytics(selectedProduct.id, 'dm_click', clientIP, sessionId, navigator.userAgent);
                   
                   const priceText = selectedProduct.ending_price ?
                     `$${selectedProduct.price} to $${selectedProduct.ending_price}` :

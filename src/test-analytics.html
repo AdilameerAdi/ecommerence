@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Analytics</title>
+</head>
+<body>
+    <h1>Test Analytics Tracking</h1>
+    <button id="testBtn">Test Track Product Click</button>
+    <div id="result"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const supabaseUrl = 'https://tubctzzjpxvjubwonseg.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1YmN0enpqcHh2anVid29uc2VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNzAwMTksImV4cCI6MjA3NDc0NjAxOX0.MsIVqXhs5sVpjIVaRgyIac9lONg0yUDEdH3qw-qTBBQ';
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const result = document.getElementById('result');
+
+            try {
+                // Test inserting into product_analytics
+                const { data, error } = await supabase
+                    .from('product_analytics')
+                    .insert({
+                        product_id: 1,
+                        action_type: 'card_click',
+                        ip_address: '127.0.0.1',
+                        session_id: 'test-session-' + Date.now(),
+                        user_agent: navigator.userAgent,
+                        action_timestamp: new Date().toISOString()
+                    })
+                    .select();
+
+                if (error) {
+                    console.error('Error:', error);
+                    result.innerHTML = `<p style="color: red;">Error: ${JSON.stringify(error)}</p>`;
+                } else {
+                    console.log('Success:', data);
+                    result.innerHTML = `<p style="color: green;">Success! Data inserted: ${JSON.stringify(data)}</p>`;
+                }
+
+                // Also test fetching analytics
+                const { data: analyticsData, error: fetchError } = await supabase
+                    .from('product_analytics')
+                    .select('*')
+                    .limit(5)
+                    .order('created_at', { ascending: false });
+
+                if (fetchError) {
+                    console.error('Fetch error:', fetchError);
+                } else {
+                    console.log('Fetched analytics:', analyticsData);
+                    result.innerHTML += `<p>Total records in table: ${analyticsData?.length || 0}</p>`;
+                }
+
+            } catch (err) {
+                console.error('Unexpected error:', err);
+                result.innerHTML = `<p style="color: red;">Unexpected error: ${err.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

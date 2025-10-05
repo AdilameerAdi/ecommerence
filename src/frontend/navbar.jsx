@@ -1,27 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Search } from "lucide-react"; // if installed
 import logoimg from "../img/logo.png"; // your logo
-import { trackSearchAnalytics, generateSessionId, getClientIP } from "../lib/supabase";
 
 export default function Navbar({ onSearch }) {
   const [query, setQuery] = useState("");
-  const [sessionId] = useState(() => generateSessionId());
-  const [clientIP, setClientIP] = useState('unknown');
-
-  // Initialize client IP
-  useEffect(() => {
-    const initIP = async () => {
-      const ip = await getClientIP();
-      setClientIP(ip);
-    };
-    initIP();
-  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
     if (onSearch && query.trim()) {
-      // Track search analytics
-      trackSearchAnalytics(query.trim(), clientIP, sessionId, 0, navigator.userAgent, 'navbar');
       onSearch(query);
     }
   };
@@ -29,11 +15,7 @@ export default function Navbar({ onSearch }) {
   const handleInputChange = (e) => {
     setQuery(e.target.value);
     // Real-time search (optional - you can remove this if you want search only on submit)
-    if (onSearch && e.target.value.trim()) {
-      // Track search analytics for real-time search
-      trackSearchAnalytics(e.target.value.trim(), clientIP, sessionId, 0, navigator.userAgent, 'navbar');
-      onSearch(e.target.value);
-    } else if (onSearch) {
+    if (onSearch) {
       onSearch(e.target.value);
     }
   };
