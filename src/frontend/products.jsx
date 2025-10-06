@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getProducts, trackProductAnalytics, trackUserAnalytics, trackSearchAnalytics, generateSessionId, getClientIP } from "../lib/supabase";
+import { getProducts, trackProductAnalytics, trackUserAnalytics, generateSessionId, getClientIP } from "../lib/supabase";
 
-export default function Products({ filters = {}, searchQuery = "" }) {
+export default function Products({ filters = {}, searchQuery = "", codeSearchQuery = "" }) {
   // --- State for products from database ---
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,8 +28,10 @@ export default function Products({ filters = {}, searchQuery = "" }) {
 
     try {
       // Build filter object for API call
+      // Use code search if provided, otherwise use regular search
       const apiFilters = {
-        search: searchQuery,
+        search: codeSearchQuery || searchQuery,
+        searchType: codeSearchQuery ? 'code' : 'general',
         categoryId: filters.category || null,
         brandIds: filters.brands && filters.brands.length > 0 ? filters.brands : null,
         isTrending: filters.trending === 'trending' ? true : filters.trending === 'regular' ? false : null,
@@ -168,17 +170,14 @@ setAllProducts(mixedProducts);
       setTotalPages(pages);
       setTotalCount(count);
 
-      // Track search if it's a search query
-      if (searchQuery && searchQuery.trim() && clientIP !== 'unknown') {
-        await trackSearchAnalytics(searchQuery.trim(), clientIP, sessionId, count, navigator.userAgent, 'main');
-      }
+      // Don't track search here - we'll track it separately when search is intentional
     } catch (err) {
       setError('Failed to load products. Please try again.');
       console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, searchQuery, clientIP, sessionId]);
+  }, [currentPage, filters, searchQuery, codeSearchQuery]);
 
   // Initialize client IP
   useEffect(() => {
@@ -202,7 +201,7 @@ setAllProducts(mixedProducts);
   // Reset to page 1 when filters or search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, searchQuery]);
+  }, [filters, searchQuery, codeSearchQuery]);
 
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -254,6 +253,20 @@ setAllProducts(mixedProducts);
 
   return (
     <section data-products-section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-10">
+      {/* Show active search indicator */}
+      {(searchQuery || codeSearchQuery) && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            {codeSearchQuery ? (
+              <>Searching for product code: <strong>"{codeSearchQuery}"</strong></>
+            ) : (
+              <>Searching for: <strong>"{searchQuery}"</strong></>
+            )}
+            {totalCount > 0 && <span className="ml-2">({totalCount} results found)</span>}
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
         <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 sm:mb-0">Our Products</h2>
         <div className="text-sm text-gray-600">

@@ -39,7 +39,13 @@ export const getProducts = async (page = 1, itemsPerPage = 12, filters = {}) => 
     if (filters.search) {
       const searchTerm = filters.search.trim()
       if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        // If it's a code search, only search in the code field
+        if (filters.searchType === 'code') {
+          query = query.ilike('code', `%${searchTerm}%`)
+        } else {
+          // Regular search across multiple fields
+          query = query.or(`name.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        }
       }
     }
 
@@ -691,7 +697,7 @@ export const deleteProductImage = async (imagePath) => {
 // Track user analytics (page views, unique visitors)
 export const trackUserAnalytics = async (ipAddress, userAgent, sessionId) => {
   try {
-    console.log('Tracking user analytics:', { ipAddress, sessionId });
+    // console.log('Tracking user analytics:', { ipAddress, sessionId });
 
     const { data, error } = await supabase
       .from('user_analytics')
@@ -711,7 +717,7 @@ export const trackUserAnalytics = async (ipAddress, userAgent, sessionId) => {
       throw error;
     }
 
-    console.log('User analytics tracked successfully:', data);
+    // console.log('User analytics tracked successfully:', data);
     return { success: true, data }
   } catch (error) {
     console.error('Error tracking user analytics:', error)
@@ -722,7 +728,7 @@ export const trackUserAnalytics = async (ipAddress, userAgent, sessionId) => {
 // Track product analytics (views, clicks, DM clicks)
 export const trackProductAnalytics = async (productId, actionType, ipAddress, sessionId, userAgent, referrer = null) => {
   try {
-    console.log('Tracking product analytics:', { productId, actionType, ipAddress, sessionId });
+    // console.log('Tracking product analytics:', { productId, actionType, ipAddress, sessionId });
 
     const { data, error } = await supabase
       .from('product_analytics')
@@ -742,7 +748,7 @@ export const trackProductAnalytics = async (productId, actionType, ipAddress, se
       throw error;
     }
 
-    console.log('Product analytics tracked successfully:', data);
+    // console.log('Product analytics tracked successfully:', data);
     return { success: true, data }
   } catch (error) {
     console.error('Error tracking product analytics:', error)
@@ -862,6 +868,27 @@ export const getDailyAnalyticsOverview = async (targetDate = null) => {
   }
 }
 
+// Get analytics totals
+export const getAnalyticsTotals = async (startDate = null, endDate = null) => {
+  try {
+    const { data, error } = await supabase.rpc('get_analytics_totals', {
+      start_date: startDate,
+      end_date: endDate
+    });
+
+    if (error) {
+      console.error('Error in getAnalyticsTotals RPC:', error);
+      throw error;
+    }
+
+    // console.log('Analytics totals result:', data);
+    return { success: true, data: data?.[0] || null };
+  } catch (error) {
+    console.error('Error fetching analytics totals:', error);
+    return { success: false, error: error.message, data: null };
+  }
+};
+
 // Get analytics data for charts (last 7 days, 30 days)
 export const getAnalyticsChartData = async (days = 7) => {
   try {
@@ -892,13 +919,13 @@ export const getClientIP = async () => {
     // Try to get IP from a public service
     const response = await fetch('https://api.ipify.org?format=json');
     const data = await response.json();
-    console.log('Got IP from ipify:', data.ip);
+    // console.log('Got IP from ipify:', data.ip);
     return data.ip || '127.0.0.1';
   } catch (error) {
     console.error('Error getting client IP:', error);
     // Fallback to localhost IP for testing
     const fallbackIP = '127.0.0.1';
-    console.log('Using fallback IP:', fallbackIP);
+    // console.log('Using fallback IP:', fallbackIP);
     return fallbackIP;
   }
 }

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   getUniqueVisitors,
   getProductAnalyticsSummary,
   getSearchAnalyticsSummary,
   getDailyAnalyticsOverview,
-  getAnalyticsChartData
+  getAnalyticsTotals
 } from '../lib/supabase';
 
 export default function Analytics() {
@@ -15,7 +15,8 @@ export default function Analytics() {
     visitors: [],
     products: [],
     searches: [],
-    dailyOverview: null
+    dailyOverview: null,
+    totals: null
   });
 
   // Date range options
@@ -26,51 +27,77 @@ export default function Analytics() {
   };
 
   // Fetch analytics data
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     setLoading(true);
     try {
       const days = parseInt(dateRange);
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      console.log('Fetching analytics data for date range:', { startDate, endDate });
+      // console.log('Fetching analytics data for date range:', { startDate, endDate });
 
-      const [visitorsResult, productsResult, searchesResult, dailyResult] = await Promise.all([
+      const [visitorsResult, productsResult, searchesResult, dailyResult, totalsResult] = await Promise.all([
         getUniqueVisitors(startDate, endDate),
         getProductAnalyticsSummary(startDate, endDate),
         getSearchAnalyticsSummary(startDate, endDate),
-        getDailyAnalyticsOverview()
+        getDailyAnalyticsOverview(),
+        getAnalyticsTotals(startDate, endDate)
       ]);
 
-      console.log('Analytics results:', {
-        visitorsResult,
-        productsResult,
-        searchesResult,
-        dailyResult
-      });
+      // console.log('Analytics results:', {
+      //   visitorsResult,
+      //   productsResult,
+      //   searchesResult,
+      //   dailyResult,
+      //   totalsResult
+      // });
 
       setAnalyticsData({
         visitors: visitorsResult.data || [],
         products: productsResult.data || [],
         searches: searchesResult.data || [],
-        dailyOverview: dailyResult.data
+        dailyOverview: dailyResult.data,
+        totals: totalsResult.data
       });
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [dateRange]);
+  }, [dateRange, fetchAnalyticsData]);
 
-  // Calculate totals
-  const totalVisitors = analyticsData.visitors.reduce((sum, day) => sum + (day.unique_visitors || 0), 0);
-  const totalProductViews = analyticsData.products.reduce((sum, product) => sum + (product.total_views || 0), 0);
-  const totalDMClicks = analyticsData.products.reduce((sum, product) => sum + (product.total_dm_clicks || 0), 0);
-  const totalSearches = analyticsData.searches.reduce((sum, search) => sum + (search.search_count || 0), 0);
+  // Calculate totals - use direct totals from database if available, otherwise calculate from arrays
+  const totalVisitors = analyticsData.totals?.unique_visitors ??
+    analyticsData.visitors.reduce((sum, day) => sum + (day.unique_visitors || 0), 0);
+
+  const totalProductViews = analyticsData.totals?.total_product_views ??
+    analyticsData.products.reduce((sum, product) => sum + (product.total_views || 0), 0);
+
+  const totalDMClicks = analyticsData.totals?.total_dm_clicks ??
+    analyticsData.products.reduce((sum, product) => sum + (product.total_dm_clicks || 0), 0);
+
+  const totalSearches = analyticsData.totals?.total_searches ??
+    analyticsData.searches.reduce((sum, search) => sum + (search.search_count || 0), 0);
+
+  // Debug logging (commented out for production)
+  // useEffect(() => {
+  //   console.log('Analytics Data State:', {
+  //     visitors: analyticsData.visitors,
+  //     products: analyticsData.products,
+  //     searches: analyticsData.searches,
+  //     dailyOverview: analyticsData.dailyOverview
+  //   });
+  //   console.log('Calculated Totals:', {
+  //     totalVisitors,
+  //     totalProductViews,
+  //     totalDMClicks,
+  //     totalSearches
+  //   });
+  // }, [analyticsData, totalVisitors, totalProductViews, totalDMClicks, totalSearches]);
 
   // Simple chart component for visitors
   const VisitorsChart = () => {

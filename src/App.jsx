@@ -7,11 +7,13 @@ import Products from "./frontend/products";
 import Footer from "./frontend/footer";
 import AdminDashboard from "./frontend/Admindashboard"; // imported here
 import SaleBanner from "./frontend/Trending";
+import ProductCodeSearch from "./frontend/ProductCodeSearch";
 import "./responsive.css"; // Import responsive styles
 
 function HomePage() {
   const [filters, setFilters] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [codeSearchQuery, setCodeSearchQuery] = useState("");
 
   const handleFiltersChange = (newFilters) => {
     setFilters(newFilters);
@@ -19,16 +21,24 @@ function HomePage() {
 
   const handleSearch = (query) => {
     setSearchQuery(query);
+    // Clear code search when using main search
+    setCodeSearchQuery("");
   };
 
+  const handleCodeSearch = (codeQuery) => {
+    setCodeSearchQuery(codeQuery);
+    // Clear main search when using code search
+    setSearchQuery("");
+  };
 
   return (
     <>
       <Header />
       <Navbar onSearch={handleSearch} />
       <SaleBanner />
+      <ProductCodeSearch onCodeSearch={handleCodeSearch} />
       <FilterBar onFiltersChange={handleFiltersChange} />
-      <Products filters={filters} searchQuery={searchQuery} />
+      <Products filters={filters} searchQuery={searchQuery} codeSearchQuery={codeSearchQuery} />
       <Footer />
     </>
   );

@@ -1,24 +1,71 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react"; // if installed
 import logoimg from "../img/logo.png"; // your logo
+import { trackSearchAnalytics, generateSessionId, getClientIP, getProducts } from "../lib/supabase";
 
 export default function Navbar({ onSearch }) {
   const [query, setQuery] = useState("");
+  const [sessionId] = useState(() => generateSessionId());
+  const [clientIP, setClientIP] = useState('127.0.0.1');
+  const searchTimeoutRef = useRef(null);
+  const lastTrackedQuery = useRef("");
+
+  // Initialize IP
+  useEffect(() => {
+    const initIP = async () => {
+      const ip = await getClientIP();
+      setClientIP(ip);
+    };
+    initIP();
+  }, []);
+
+  // Track search when user submits form or stops typing
+  const trackSearch = async (searchQuery) => {
+    if (searchQuery.trim() && searchQuery !== lastTrackedQuery.current && clientIP !== 'unknown') {
+      // Get actual results count
+      const { totalCount } = await getProducts(1, 1, { search: searchQuery });
+      await trackSearchAnalytics(searchQuery.trim(), clientIP, sessionId, totalCount || 0, navigator.userAgent, 'navbar');
+      lastTrackedQuery.current = searchQuery;
+    }
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
     if (onSearch && query.trim()) {
       onSearch(query);
+      trackSearch(query); // Track on form submit
     }
   };
 
   const handleInputChange = (e) => {
     setQuery(e.target.value);
-    // Real-time search (optional - you can remove this if you want search only on submit)
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Real-time search for display
     if (onSearch) {
       onSearch(e.target.value);
     }
+
+    // Track search after user stops typing for 1.5 seconds
+    if (e.target.value.trim()) {
+      searchTimeoutRef.current = setTimeout(() => {
+        trackSearch(e.target.value);
+      }, 1500);
+    }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 bg-white text-black shadow-md">
