@@ -9,6 +9,7 @@ import AdminDashboard from "./frontend/Admindashboard"; // imported here
 import SaleBanner from "./frontend/Trending";
 import ProductCodeSearch from "./frontend/ProductCodeSearch";
 import AdvertisementPopup from "./frontend/AdvertisementPopup";
+import ProductDetail from "./frontend/ProductDetail";
 import "./responsive.css"; // Import responsive styles
 
 function HomePage() {
@@ -55,6 +56,9 @@ export default function App() {
       <Routes>
         {/* Main Website */}
         <Route path="/" element={<HomePage />} />
+
+        {/* Product Detail Page */}
+        <Route path="/product/:productId" element={<ProductDetail />} />
 
         {/* Admin Dashboard */}
         <Route path="/admindashboard" element={<AdminDashboard />} />

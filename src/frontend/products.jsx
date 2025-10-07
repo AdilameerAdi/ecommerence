@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { getProducts, trackProductAnalytics, trackUserAnalytics, generateSessionId, getClientIP } from "../lib/supabase";
 
 export default function Products({ filters = {}, searchQuery = "", codeSearchQuery = "" }) {
@@ -10,6 +11,10 @@ export default function Products({ filters = {}, searchQuery = "", codeSearchQue
   // Analytics tracking
   const [sessionId] = useState(() => generateSessionId());
   const [clientIP, setClientIP] = useState('unknown');
+
+  // URL parameter handling
+  const { productId } = useParams();
+  const navigate = useNavigate();
 
   // Helper function to check if any price is missing
   const hasMissingPrice = (product) => {
@@ -203,6 +208,7 @@ setAllProducts(mixedProducts);
     setCurrentPage(1);
   }, [filters, searchQuery, codeSearchQuery]);
 
+
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -222,43 +228,36 @@ setAllProducts(mixedProducts);
     await trackProductAnalytics(product.id, 'modal_open', clientIP, sessionId, navigator.userAgent);
   };
 
+  // Handle URL parameter for opening specific product
+  useEffect(() => {
+    if (productId && allProducts.length > 0) {
+      const product = allProducts.find(p => p.id.toString() === productId);
+      if (product) {
+        openModal(product);
+        // Navigate to home page to remove the productId from URL
+        navigate('/', { replace: true });
+      }
+    }
+  }, [productId, allProducts, navigate]);
+
   const closeModal = () => {
     setSelectedProduct(null);
     setMainImage("");
   };
 
-  // Copy product information to clipboard
-  const copyProductInfo = async (product) => {
+  // Share product link
+  const shareProductLink = async (product) => {
     try {
-      const priceText = product.ending_price
-        ? `$${product.price} to $${product.ending_price}`
-        : `$${product.price}`;
-
-      const retailPriceText = product.retail_price
-        ? `Retail Price: $${product.retail_price}\n`
-        : '';
-
-      const productInfo = `Product Information:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Product Name: ${product.name}
-Product Code: ${product.code}
-${retailPriceText}Current Price: ${priceText}
-Shipping: ${product.reseller_name}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Description: ${product.description || 'No description available'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Category: ${product.category}${product.is_trending ? '\nStatus: 🔥 Trending Product' : ''}
-Images: ${product.images.length} image(s) available
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Instagram: @reseller.market_`;
-
-      await navigator.clipboard.writeText(productInfo);
-
+      const productUrl = `${window.location.origin}/product/${product.id}`;
+      
+      // Always copy to clipboard for instant sharing
+      await navigator.clipboard.writeText(productUrl);
+      
       // Show success feedback
-      const button = document.getElementById('copy-product-btn');
+      const button = document.getElementById('share-product-btn');
       if (button) {
         const originalText = button.innerHTML;
-        button.innerHTML = '✓ Copied to Clipboard!';
+        button.innerHTML = '✓ Link Copied!';
         button.classList.add('bg-green-600', 'hover:bg-green-700');
         button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
 
@@ -268,9 +267,31 @@ Instagram: @reseller.market_`;
           button.classList.add('bg-blue-600', 'hover:bg-blue-700');
         }, 2000);
       }
-    } catch (err) {
-      alert('Failed to copy product information to clipboard');
-      console.error('Failed to copy: ', err);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      // Fallback for older browsers
+      const productUrl = `${window.location.origin}/product/${product.id}`;
+      const textArea = document.createElement('textarea');
+      textArea.value = productUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      // Show success feedback even for fallback
+      const button = document.getElementById('share-product-btn');
+      if (button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '✓ Link Copied!';
+        button.classList.add('bg-green-600', 'hover:bg-green-700');
+        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.classList.remove('bg-green-600', 'hover:bg-green-700');
+          button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }, 2000);
+      }
     }
   };
 
@@ -531,15 +552,15 @@ Instagram: @reseller.market_`;
 
               <div className="mt-auto space-y-3">
                 <button
-                  id="copy-product-btn"
-                  onClick={() => copyProductInfo(selectedProduct)}
+                  id="share-product-btn"
+                  onClick={() => shareProductLink(selectedProduct)}
                   className="w-full bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base font-medium flex items-center justify-center gap-2"
-                  title="Copy complete product information to clipboard"
+                  title="Share product link"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                   </svg>
-                  Copy Product Info
+                  Share Product Link
                 </button>
 
                 <button
