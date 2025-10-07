@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import SmartImage from "../components/SmartImage";
 import {
   getCategories,
   addCategory,
@@ -18,6 +19,10 @@ import {
   changeAdminPassword,
   updateAdminUsername,
   uploadProductImage,
+  updateSlidingContent,
+  // getCategoriesForAdmin,
+  // getBrandDetails,
+  // getCategoryDetails,
 } from "../lib/supabase";
 import Analytics from "./Analytics";
 
@@ -44,9 +49,9 @@ export default function AdminDashboard() {
     navigate("/"); // redirects to homepage
   };
   const [categories, setCategories] = useState([]);
-  const [newCategory, setNewCategory] = useState("");
+  const [newCategory, setNewCategory] = useState({ name: "", description: "", image_url: "" });
   const [brands, setBrands] = useState([]);
-  const [newBrand, setNewBrand] = useState({ name: "", description: "" });
+  const [newBrand, setNewBrand] = useState({ name: "", description: "", image_url: "", category_id: "" });
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,6 +63,14 @@ export default function AdminDashboard() {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [imageFiles, setImageFiles] = useState([]);
   const [imageUploading, setImageUploading] = useState(false);
+
+  // Category image upload states
+  const [_categoryImageFile, setCategoryImageFile] = useState(null);
+  const [categoryImageUrl, setCategoryImageUrl] = useState('');
+
+  // Brand image upload states
+  const [_brandImageFile, setBrandImageFile] = useState(null);
+  const [brandImageUrl, setBrandImageUrl] = useState('');
 
   // Mobile menu state
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -163,17 +176,106 @@ export default function AdminDashboard() {
     setImageUploading(false);
   };
 
+  // Category image upload helpers
+  const handleCategoryImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image size must be less than 2MB');
+        return;
+      }
+
+      setCategoryImageFile(file);
+      convertImageToBase64(file, setCategoryImageUrl);
+    }
+  };
+
+  const convertImageToBase64 = (file, setUrlCallback) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setUrlCallback(e.target.result); // This is the base64 data URL
+    };
+    reader.onerror = () => {
+      alert('Error reading image file');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Brand image upload helpers
+  const handleBrandImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image size must be less than 2MB');
+        return;
+      }
+
+      setBrandImageFile(file);
+      convertImageToBase64(file, setBrandImageUrl);
+    }
+  };
+
   // Search functionality
   const handleSearch = (query) => {
     setSearchQuery(query);
     if (query.trim() === "") {
       setFilteredProducts(products);
     } else {
-      const filtered = products.filter(product => 
+      const filtered = products.filter(product =>
         product.name.toLowerCase().includes(query.toLowerCase()) ||
         product.code.toLowerCase().includes(query.toLowerCase())
       );
       setFilteredProducts(filtered);
+    }
+  };
+
+  // Copy product information to clipboard
+  const copyProductInfo = async (product) => {
+    try {
+      const categoryName = categories.find(cat => cat.id === product.category_id)?.name || 'N/A';
+      const brandName = brands.find(brand => brand.id === product.brand_id)?.name || 'N/A';
+
+      const productInfo = `Product Information:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Product Name: ${product.name}
+Product Code: ${product.code}
+Category: ${categoryName}
+Brand: ${brandName}
+Reseller: ${product.reseller_name || 'N/A'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pricing Details:
+${product.retail_price ? `Retail Price: $${product.retail_price}` : ''}
+Starting Price: $${product.price}
+${product.ending_price ? `Ending Price: $${product.ending_price}` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Description: ${product.description || 'No description available'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Status: ${product.is_trending ? '🔥 Trending Product' : 'Regular Product'}
+Created: ${new Date(product.created_at).toLocaleDateString()}
+${product.product_images && product.product_images.length > 0 ? `Images: ${product.product_images.length} image(s) available` : 'No images'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+      await navigator.clipboard.writeText(productInfo);
+
+      // Show success feedback
+      const button = document.getElementById(`copy-btn-${product.id}`);
+      if (button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '✓ Copied!';
+        button.classList.add('bg-green-600', 'hover:bg-green-700');
+        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.classList.remove('bg-green-600', 'hover:bg-green-700');
+          button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }, 2000);
+      }
+    } catch (err) {
+      alert('Failed to copy product information to clipboard');
+      console.error('Failed to copy: ', err);
     }
   };
 
@@ -317,13 +419,21 @@ export default function AdminDashboard() {
           className="space-y-4 sm:space-y-6"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (newCategory.trim() === "") return;
+            if (newCategory.name.trim() === "") return;
 
             setLoading(true);
-            const result = await addCategory(newCategory);
+
+            const categoryData = {
+              ...newCategory,
+              image_url: categoryImageUrl // This is now a base64 data URL
+            };
+
+            const result = await addCategory(categoryData);
             if (result.success) {
               await fetchCategories();
-              setNewCategory("");
+              setNewCategory({ name: "", description: "", image_url: "" });
+              setCategoryImageUrl('');
+              setCategoryImageFile(null);
               alert('Category added successfully!');
             } else {
               alert('Error adding category: ' + result.error);
@@ -333,15 +443,81 @@ export default function AdminDashboard() {
         >
           <div>
             <label className="block text-gray-700 font-medium mb-2 text-sm sm:text-base">
-              Category Name
+              Category Name *
             </label>
             <input
               type="text"
               placeholder="Enter category name"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
+              value={newCategory.name}
+              onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
               className="w-full px-3 sm:px-4 lg:px-5 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300"
             />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-2 text-sm sm:text-base">
+              Description
+            </label>
+            <textarea
+              placeholder="Enter category description (optional)"
+              value={newCategory.description}
+              onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+              className="w-full px-3 sm:px-4 lg:px-5 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300"
+              rows="3"
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-2 text-sm sm:text-base">
+              Category Image
+            </label>
+
+            {/* Image Upload */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-indigo-400 transition-colors">
+              {categoryImageUrl ? (
+                <div className="text-center">
+                  <div className="mb-3">
+                    <img
+                      src={categoryImageUrl}
+                      alt="Category preview"
+                      className="w-20 h-20 object-cover rounded-lg mx-auto border-2 border-gray-200"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCategoryImageUrl('');
+                      setCategoryImageFile(null);
+                    }}
+                    className="text-red-600 text-sm hover:text-red-800"
+                  >
+                    Remove Image
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div className="mb-4">
+                    <label htmlFor="categoryImageInput" className="cursor-pointer">
+                      <span className="text-indigo-600 font-medium hover:text-indigo-500">
+                        Click to upload an image
+                      </span>
+                      <input
+                        id="categoryImageInput"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCategoryImageSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              This image will be displayed in the category filter on the user side
+            </p>
           </div>
           <button
             type="submit"
@@ -364,14 +540,38 @@ export default function AdminDashboard() {
                 key={cat.id}
                 className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-3 sm:px-4 lg:px-5 py-3 hover:bg-gray-50 transition duration-200 gap-2 sm:gap-0"
               >
-                <span className="text-gray-800 font-medium text-sm sm:text-base">{cat.name}</span>
+                <div className="flex items-center flex-grow">
+                  {/* Category Image */}
+                  <SmartImage
+                    src={cat.image_url}
+                    alt={cat.name}
+                    className="w-10 rounded-lg object-cover mr-3"
+                    fallbackContent={
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white font-semibold mr-3">
+                        {cat.name.charAt(0).toUpperCase()}
+                      </div>
+                    }
+                  />
+                  <div>
+                    <span className="text-gray-800 font-medium text-sm sm:text-base">{cat.name}</span>
+                    {cat.description && (
+                      <p className="text-xs text-gray-600 mt-1">{cat.description}</p>
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-2 self-end sm:self-auto">
                   <button
                     onClick={async () => {
                       const newName = prompt("Edit category name", cat.name);
+                      const newDescription = prompt("Edit category description (optional)", cat.description || "");
+                      const newImageUrl = prompt("Edit category image URL (optional)", cat.image_url || "");
                       if (newName && newName !== cat.name) {
                         setLoading(true);
-                        const result = await updateCategory(cat.id, newName);
+                        const result = await updateCategory(cat.id, {
+                          name: newName,
+                          description: newDescription,
+                          image_url: newImageUrl
+                        });
                         if (result.success) {
                           await fetchCategories();
                           alert('Category updated successfully!');
@@ -427,11 +627,23 @@ export default function AdminDashboard() {
           onSubmit={async (e) => {
             e.preventDefault();
             if (newBrand.name.trim() === "") return;
+            if (!newBrand.category_id) {
+              alert('Please select a category for this brand');
+              return;
+            }
             setLoading(true);
-            const result = await addBrand(newBrand);
+
+            const brandData = {
+              ...newBrand,
+              image_url: brandImageUrl // This is now a base64 data URL
+            };
+
+            const result = await addBrand(brandData);
             if (result.success) {
               await fetchBrands();
-              setNewBrand({ name: "", description: "" });
+              setNewBrand({ name: "", description: "", image_url: "", category_id: "" });
+              setBrandImageUrl('');
+              setBrandImageFile(null);
               alert('Brand added successfully!');
             } else {
               alert('Error adding brand: ' + result.error);
@@ -441,7 +653,7 @@ export default function AdminDashboard() {
         >
           <div>
             <label className="block text-gray-700 font-medium mb-2 text-sm sm:text-base">
-              Brand Name
+              Brand Name *
             </label>
             <input
               type="text"
@@ -453,15 +665,88 @@ export default function AdminDashboard() {
           </div>
           <div>
             <label className="block text-gray-700 font-medium mb-2 text-sm sm:text-base">
-              Description (Optional)
+              Category
+            </label>
+            <select
+              value={newBrand.category_id}
+              onChange={(e) => setNewBrand({ ...newBrand, category_id: e.target.value })}
+              className="w-full px-3 sm:px-4 lg:px-5 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300"
+              required
+            >
+              <option value="">Select Category *</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Select which category this brand belongs to (required)
+            </p>
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-2 text-sm sm:text-base">
+              Description
             </label>
             <textarea
-              placeholder="Enter brand description"
+              placeholder="Enter brand description (optional)"
               value={newBrand.description}
               onChange={(e) => setNewBrand({ ...newBrand, description: e.target.value })}
               className="w-full px-3 sm:px-4 lg:px-5 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300"
               rows="3"
             />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-medium mb-2 text-sm sm:text-base">
+              Brand Image
+            </label>
+
+            {/* Image Upload */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-indigo-400 transition-colors">
+              {brandImageUrl ? (
+                <div className="text-center">
+                  <div className="mb-3">
+                    <img
+                      src={brandImageUrl}
+                      alt="Brand preview"
+                      className="w-20 h-20 object-cover rounded-lg mx-auto border-2 border-gray-200"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBrandImageUrl('');
+                      setBrandImageFile(null);
+                    }}
+                    className="text-red-600 text-sm hover:text-red-800"
+                  >
+                    Remove Image
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div className="mb-4">
+                    <label htmlFor="brandImageInput" className="cursor-pointer">
+                      <span className="text-indigo-600 font-medium hover:text-indigo-500">
+                        Click to upload an image
+                      </span>
+                      <input
+                        id="brandImageInput"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBrandImageSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              This image will be displayed in the brand filter on the user side
+            </p>
           </div>
           <button
             type="submit"
@@ -481,20 +766,45 @@ export default function AdminDashboard() {
           <ul className="space-y-2 sm:space-y-3">
             {brands.map((brand) => (
               <li key={brand.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex-grow">
-                  <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{brand.name}</h3>
-                  {brand.description && (
-                    <p className="text-xs sm:text-sm text-gray-600 mt-1">{brand.description}</p>
-                  )}
+                <div className="flex items-center flex-grow">
+                  {/* Brand Image */}
+                  <SmartImage
+                    src={brand.image_url}
+                    alt={brand.name}
+                    className="w-10 h-10 rounded-lg object-cover mr-3"
+                    fallbackContent={
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white font-semibold mr-3">
+                        {brand.name.charAt(0).toUpperCase()}
+                      </div>
+                    }
+                  />
+                  <div className="flex-grow">
+                    <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{brand.name}</h3>
+                    {brand.description && (
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1">{brand.description}</p>
+                    )}
+                    {brand.category_id && (
+                      <p className="text-xs text-indigo-600 mt-1">
+                        Category: {categories.find(cat => cat.id === brand.category_id)?.name || 'Unknown'}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex space-x-1 sm:space-x-2">
                   <button
                     onClick={async () => {
                       const newName = prompt("Edit brand name:", brand.name);
                       const newDescription = prompt("Edit brand description (optional):", brand.description || "");
+                      const newImageUrl = prompt("Edit brand image URL (optional):", brand.image_url || "");
+                      const categoryId = prompt("Edit brand category ID (optional):", brand.category_id || "");
                       if (newName) {
                         setLoading(true);
-                        const result = await updateBrand(brand.id, { name: newName, description: newDescription });
+                        const result = await updateBrand(brand.id, {
+                          name: newName,
+                          description: newDescription,
+                          image_url: newImageUrl,
+                          category_id: categoryId ? parseInt(categoryId) : null
+                        });
                         if (result.success) {
                           await fetchBrands();
                           alert('Brand updated successfully!');
@@ -553,6 +863,14 @@ export default function AdminDashboard() {
         const newImageUrls = await uploadImages();
         const allImages = [...uploadedImages, ...newImageUrls];
 
+        // Check if brand is selected
+        const brandId = formData.get('brand_id');
+        if (!brandId) {
+          alert('Please select a brand for this product');
+          setLoading(false);
+          return;
+        }
+
         const productData = {
           name: formData.get('name'),
           code: formData.get('code'),
@@ -562,7 +880,7 @@ export default function AdminDashboard() {
           description: formData.get('description'),
           category_id: parseInt(formData.get('category_id')),
           reseller_name: formData.get('reseller_name'),
-          brand_id: formData.get('brand_id') ? parseInt(formData.get('brand_id')) : null,
+          brand_id: parseInt(brandId),
           is_trending: formData.get('is_trending') === 'on',
           images: allImages
         };
@@ -672,8 +990,9 @@ export default function AdminDashboard() {
         <select
           name="brand_id"
           className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+          required
         >
-          <option value="">Select Brand (Optional)</option>
+          <option value="">Select Brand *</option>
           {brands.map(brand => (
             <option key={brand.id} value={brand.id}>{brand.name}</option>
           ))}
@@ -842,6 +1161,17 @@ export default function AdminDashboard() {
               </div>
               <div className="flex gap-2">
                 <button
+                  id={`copy-btn-${product.id}`}
+                  onClick={() => copyProductInfo(product)}
+                  className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center gap-1"
+                  title="Copy product information to clipboard"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy
+                </button>
+                <button
                   onClick={() => {
                     setEditingProduct(product);
                     setShowEditModal(true);
@@ -902,6 +1232,14 @@ export default function AdminDashboard() {
               const newImageUrls = await uploadImages();
               const allImages = [...uploadedImages, ...newImageUrls];
 
+              // Check if brand is selected
+              const brandId = formData.get('brand_id');
+              if (!brandId) {
+                alert('Please select a brand for this product');
+                setLoading(false);
+                return;
+              }
+
               const productData = {
                 name: formData.get('name'),
                 code: formData.get('code'),
@@ -911,7 +1249,7 @@ export default function AdminDashboard() {
                 description: formData.get('description'),
                 category_id: parseInt(formData.get('category_id')),
                 reseller_name: formData.get('reseller_name'),
-                brand_id: formData.get('brand_id') ? parseInt(formData.get('brand_id')) : null,
+                brand_id: parseInt(brandId),
                 is_trending: formData.get('is_trending') === 'on',
                 // Only update images if new ones were uploaded
                 images: allImages.length > 0 ? allImages : undefined
@@ -1032,8 +1370,9 @@ export default function AdminDashboard() {
                 name="brand_id"
                 defaultValue={editingProduct.brand_id}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                required
               >
-                <option value="">Select Brand (Optional)</option>
+                <option value="">Select Brand *</option>
                 {brands.map(brand => (
                   <option key={brand.id} value={brand.id}>{brand.name}</option>
                 ))}
@@ -1233,11 +1572,22 @@ export default function AdminDashboard() {
                       {/* Actions */}
                       <div className="flex gap-2">
                         <button
+                          id={`copy-btn-${product.id}`}
+                          onClick={() => copyProductInfo(product)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center gap-1"
+                          title="Copy product information to clipboard"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy
+                        </button>
+                        <button
                           onClick={() => {
                             setEditingProduct(product);
                             setShowEditModal(true);
                           }}
-                          className="flex-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                          className="flex-1 px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
                         >
                           Edit
                         </button>
@@ -1475,7 +1825,6 @@ export default function AdminDashboard() {
 
           setLoading(true);
           try {
-            const { updateSlidingContent } = await import('../lib/supabase');
             const result = await updateSlidingContent(content);
 
             if (result.success) {

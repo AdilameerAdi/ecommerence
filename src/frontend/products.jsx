@@ -227,6 +227,53 @@ setAllProducts(mixedProducts);
     setMainImage("");
   };
 
+  // Copy product information to clipboard
+  const copyProductInfo = async (product) => {
+    try {
+      const priceText = product.ending_price
+        ? `$${product.price} to $${product.ending_price}`
+        : `$${product.price}`;
+
+      const retailPriceText = product.retail_price
+        ? `Retail Price: $${product.retail_price}\n`
+        : '';
+
+      const productInfo = `Product Information:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Product Name: ${product.name}
+Product Code: ${product.code}
+${retailPriceText}Current Price: ${priceText}
+Shipping: ${product.reseller_name}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Description: ${product.description || 'No description available'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Category: ${product.category}${product.is_trending ? '\nStatus: 🔥 Trending Product' : ''}
+Images: ${product.images.length} image(s) available
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Instagram: @reseller.market_`;
+
+      await navigator.clipboard.writeText(productInfo);
+
+      // Show success feedback
+      const button = document.getElementById('copy-product-btn');
+      if (button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '✓ Copied to Clipboard!';
+        button.classList.add('bg-green-600', 'hover:bg-green-700');
+        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.classList.remove('bg-green-600', 'hover:bg-green-700');
+          button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }, 2000);
+      }
+    } catch (err) {
+      alert('Failed to copy product information to clipboard');
+      console.error('Failed to copy: ', err);
+    }
+  };
+
   // --- Loading state ---
   if (loading && allProducts.length === 0) {
     return (
@@ -482,47 +529,61 @@ setAllProducts(mixedProducts);
                 </p>
               </div>
 
-              <button
-                onClick={async () => {
-                  // Track DM click
-                  await trackProductAnalytics(selectedProduct.id, 'dm_click', clientIP, sessionId, navigator.userAgent);
-                  
-                  const priceText = selectedProduct.ending_price ?
-                    `$${selectedProduct.price} to $${selectedProduct.ending_price}` :
-                    `$${selectedProduct.price}`;
-                  const productInfo = `Hi! I'm interested in this product:\n\n📦 ${selectedProduct.name}\n💰 Price: ${priceText}\n🔢 Code: ${selectedProduct.code}\n👤 Reseller: ${selectedProduct.reseller_name}\n\nCan you please provide more details about availability and delivery?`;
+              <div className="mt-auto space-y-3">
+                <button
+                  id="copy-product-btn"
+                  onClick={() => copyProductInfo(selectedProduct)}
+                  className="w-full bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base font-medium flex items-center justify-center gap-2"
+                  title="Copy complete product information to clipboard"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy Product Info
+                </button>
 
-                  // Copy product info to clipboard silently
-                  navigator.clipboard.writeText(productInfo).catch(() => {
-                    // Silently fail if clipboard doesn't work
-                  });
+                <button
+                  onClick={async () => {
+                    // Track DM click
+                    await trackProductAnalytics(selectedProduct.id, 'dm_click', clientIP, sessionId, navigator.userAgent);
 
-                  // Removed instruction modal for simpler approach
+                    const priceText = selectedProduct.ending_price ?
+                      `$${selectedProduct.price} to $${selectedProduct.ending_price}` :
+                      `$${selectedProduct.price}`;
+                    const productInfo = `Hi! I'm interested in this product:\n\n📦 ${selectedProduct.name}\n💰 Price: ${priceText}\n🔢 Code: ${selectedProduct.code}\n👤 Reseller: ${selectedProduct.reseller_name}\n\nCan you please provide more details about availability and delivery?`;
 
-                  // Direct Instagram link to open the person's chat/profile
-                  const instagramUrl = 'https://www.instagram.com/reseller.market_?igsh=ZndjaXd3eWZpenl6&utm_source=qr';
+                    // Copy product info to clipboard silently
+                    navigator.clipboard.writeText(productInfo).catch(() => {
+                      // Silently fail if clipboard doesn't work
+                    });
 
-                  // Try to open Instagram app first on mobile, then fallback to web
-                  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    // Removed instruction modal for simpler approach
 
-                  if (isMobile) {
-                    // Try Instagram app deep link first
-                    const appUrl = 'instagram://user?username=reseller.market_';
-                    window.location.href = appUrl;
+                    // Direct Instagram link to open the person's chat/profile
+                    const instagramUrl = 'https://www.instagram.com/reseller.market_?igsh=ZndjaXd3eWZpenl6&utm_source=qr';
 
-                    // Fallback to web version after 1.5 seconds if app doesn't open
-                    setTimeout(() => {
+                    // Try to open Instagram app first on mobile, then fallback to web
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                    if (isMobile) {
+                      // Try Instagram app deep link first
+                      const appUrl = 'instagram://user?username=reseller.market_';
+                      window.location.href = appUrl;
+
+                      // Fallback to web version after 1.5 seconds if app doesn't open
+                      setTimeout(() => {
+                        window.open(instagramUrl, '_blank');
+                      }, 1500);
+                    } else {
+                      // Desktop: Open web version directly
                       window.open(instagramUrl, '_blank');
-                    }, 1500);
-                  } else {
-                    // Desktop: Open web version directly
-                    window.open(instagramUrl, '_blank');
-                  }
-                }}
-                className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-800 transition mt-auto text-sm sm:text-base font-medium"
-              >
-                Send DM on Instagram
-              </button>
+                    }
+                  }}
+                  className="w-full bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-800 transition text-sm sm:text-base font-medium"
+                >
+                  Send DM on Instagram
+                </button>
+              </div>
             </div>
           </div>
         </div>

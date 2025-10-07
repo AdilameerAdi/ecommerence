@@ -26,9 +26,13 @@ export const getProducts = async (page = 1, itemsPerPage = 12, filters = {}) => 
     }
 
     // Apply brand filters (multiple brands)
+    // Only apply brand filter if brands are explicitly selected
+    // If no brands are selected, show all products (don't filter by brand)
     if (filters.brandIds && filters.brandIds.length > 0) {
       query = query.in('brand_id', filters.brandIds)
     }
+    // Note: If no brandIds are provided, we don't filter by brand at all
+    // This allows products with or without brands to be shown
 
     // Apply trending filter
     if (filters.isTrending !== null && filters.isTrending !== undefined) {
@@ -147,6 +151,8 @@ export const addBrand = async (brandData) => {
         name: brandData.name,
         description: brandData.description || null,
         logo_url: brandData.logo_url || null,
+        image_url: brandData.image_url || null,
+        category_id: brandData.category_id || null,
         is_active: true
       })
       .select()
@@ -166,8 +172,10 @@ export const updateBrand = async (id, brandData) => {
       .from('brands')
       .update({
         name: brandData.name,
-        description: brandData.description,
-        logo_url: brandData.logo_url,
+        description: brandData.description || null,
+        logo_url: brandData.logo_url || null,
+        image_url: brandData.image_url || null,
+        category_id: brandData.category_id || null,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -230,11 +238,20 @@ export const getTrendingBanner = async () => {
 }
 
 // Admin functions (require authentication)
-export const addCategory = async (name) => {
+export const addCategory = async (categoryData) => {
   try {
+    // Support both string (old format) and object (new format)
+    const insertData = typeof categoryData === 'string'
+      ? { name: categoryData }
+      : {
+          name: categoryData.name,
+          description: categoryData.description || null,
+          image_url: categoryData.image_url || null
+        };
+
     const { data, error } = await supabase
       .from('categories')
-      .insert({ name })
+      .insert(insertData)
       .select()
       .single()
 
@@ -246,11 +263,20 @@ export const addCategory = async (name) => {
   }
 }
 
-export const updateCategory = async (id, name) => {
+export const updateCategory = async (id, categoryData) => {
   try {
+    // Support both string (old format) and object (new format)
+    const updateData = typeof categoryData === 'string'
+      ? { name: categoryData }
+      : {
+          name: categoryData.name,
+          description: categoryData.description || null,
+          image_url: categoryData.image_url || null
+        };
+
     const { data, error } = await supabase
       .from('categories')
-      .update({ name })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
@@ -677,6 +703,60 @@ export const uploadProductImage = async (file, productId = null) => {
   }
 }
 
+// Upload category image
+export const uploadCategoryImage = async (file) => {
+  try {
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+    const filePath = `categories/${fileName}`
+
+    // Upload file to Supabase storage
+    const { error } = await supabase.storage
+      .from('category-images')
+      .upload(filePath, file)
+
+    if (error) throw error
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('category-images')
+      .getPublicUrl(filePath)
+
+    return { success: true, url: publicUrl, path: filePath }
+  } catch (error) {
+    console.error('Error uploading category image:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Upload brand image
+export const uploadBrandImage = async (file) => {
+  try {
+    // Create a unique filename
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+    const filePath = `brands/${fileName}`
+
+    // Upload file to Supabase storage
+    const { error } = await supabase.storage
+      .from('brand-images')
+      .upload(filePath, file)
+
+    if (error) throw error
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('brand-images')
+      .getPublicUrl(filePath)
+
+    return { success: true, url: publicUrl, path: filePath }
+  } catch (error) {
+    console.error('Error uploading brand image:', error)
+    return { success: false, error: error.message }
+  }
+}
+
 // Delete uploaded image
 export const deleteProductImage = async (imagePath) => {
   try {
@@ -912,6 +992,77 @@ export const getAnalyticsChartData = async (days = 7) => {
     return { success: false, error: error.message, data: null }
   }
 }
+
+// Get brands by category
+export const getBrandsByCategory = async (categoryId = null) => {
+  try {
+    const { data, error } = await supabase.rpc('get_brands_by_category', {
+      category_id_param: categoryId
+    });
+
+    if (error) throw error;
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('Error fetching brands by category:', error);
+    return { success: false, error: error.message, data: [] };
+  }
+};
+
+// Get categories with brand counts
+export const getCategoriesWithBrandCounts = async () => {
+  try {
+    const { data, error } = await supabase.rpc('get_categories_with_brand_counts');
+
+    if (error) throw error;
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('Error fetching categories with brand counts:', error);
+    return { success: false, error: error.message, data: [] };
+  }
+};
+
+// Get categories for admin forms (simple format)
+export const getCategoriesForAdmin = async () => {
+  try {
+    const { data, error } = await supabase.rpc('get_categories_for_admin');
+
+    if (error) throw error;
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('Error fetching categories for admin:', error);
+    return { success: false, error: error.message, data: [] };
+  }
+};
+
+// Get brand details with category info
+export const getBrandDetails = async (brandId) => {
+  try {
+    const { data, error } = await supabase.rpc('get_brand_details', {
+      brand_id_param: brandId
+    });
+
+    if (error) throw error;
+    return { success: true, data: data?.[0] || null };
+  } catch (error) {
+    console.error('Error fetching brand details:', error);
+    return { success: false, error: error.message, data: null };
+  }
+};
+
+// Get category details
+export const getCategoryDetails = async (categoryId) => {
+  try {
+    const { data, error } = await supabase.rpc('get_category_details', {
+      category_id_param: categoryId
+    });
+
+    if (error) throw error;
+    return { success: true, data: data?.[0] || null };
+  } catch (error) {
+    console.error('Error fetching category details:', error);
+    return { success: false, error: error.message, data: null };
+  }
+};
 
 // Utility function to get client IP (for tracking)
 export const getClientIP = async () => {
