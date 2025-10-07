@@ -8,6 +8,7 @@ import Footer from "./frontend/footer";
 import AdminDashboard from "./frontend/Admindashboard"; // imported here
 import SaleBanner from "./frontend/Trending";
 import ProductCodeSearch from "./frontend/ProductCodeSearch";
+import AdvertisementPopup from "./frontend/AdvertisementPopup";
 import "./responsive.css"; // Import responsive styles
 
 function HomePage() {
@@ -33,6 +34,10 @@ function HomePage() {
 
   return (
     <>
+      <AdvertisementPopup 
+        delay={2500} // 2.5 seconds delay
+        showOnEveryVisit={false} // Set to true if you want to show on every visit
+      />
       <Header />
       <Navbar onSearch={handleSearch} />
       <SaleBanner />
