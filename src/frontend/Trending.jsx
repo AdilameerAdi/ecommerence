@@ -269,42 +269,103 @@ export default function SaleBanner() {
                 </p>
               </div>
 
-              <button
-                onClick={() => {
-                  const priceText = selectedProduct.ending_price ?
-                    `$${selectedProduct.price} to $${selectedProduct.ending_price}` :
-                    `$${selectedProduct.price}`;
-                  const productInfo = `Hi! I'm interested in this product:\n\n📦 ${selectedProduct.name}\n💰 Price: ${priceText}\n🔢 Code: ${selectedProduct.code}\n👤 Reseller: ${selectedProduct.reseller_name}\n\nCan you please provide more details about availability and delivery?`;
+              <div className="mt-auto space-y-3">
+                <button
+                  id="share-product-btn"
+                  onClick={() => {
+                    try {
+                      const productUrl = `${window.location.origin}/product/${selectedProduct.id}`;
+                      
+                      // Always copy to clipboard for instant sharing
+                      navigator.clipboard.writeText(productUrl);
+                      
+                      // Show success feedback
+                      const button = document.getElementById('share-product-btn');
+                      if (button) {
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '✓ Link Copied!';
+                        button.classList.add('bg-green-600', 'hover:bg-green-700');
+                        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
 
-                  // Copy product info to clipboard silently
-                  navigator.clipboard.writeText(productInfo).catch(() => {
-                    // Silently fail if clipboard doesn't work
-                  });
+                        setTimeout(() => {
+                          button.innerHTML = originalText;
+                          button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                          button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        }, 2000);
+                      }
+                    } catch (error) {
+                      console.error('Failed to copy link:', error);
+                      // Fallback for older browsers
+                      const productUrl = `${window.location.origin}/product/${selectedProduct.id}`;
+                      const textArea = document.createElement('textarea');
+                      textArea.value = productUrl;
+                      document.body.appendChild(textArea);
+                      textArea.select();
+                      document.execCommand('copy');
+                      document.body.removeChild(textArea);
+                      
+                      // Show success feedback even for fallback
+                      const button = document.getElementById('share-product-btn');
+                      if (button) {
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '✓ Link Copied!';
+                        button.classList.add('bg-green-600', 'hover:bg-green-700');
+                        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
 
-                  // Direct Instagram link to open the person's chat/profile
-                  const instagramUrl = 'https://www.instagram.com/reseller.market_?igsh=ZndjaXd3eWZpenl6&utm_source=qr';
+                        setTimeout(() => {
+                          button.innerHTML = originalText;
+                          button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                          button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        }, 2000);
+                      }
+                    }
+                  }}
+                  className="w-full bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base font-medium flex items-center justify-center gap-2"
+                  title="Share product link"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                  </svg>
+                  Share Product Link
+                </button>
 
-                  // Try to open Instagram app first on mobile, then fallback to web
-                  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                <button
+                  onClick={() => {
+                    const priceText = selectedProduct.ending_price ?
+                      `$${selectedProduct.price} to $${selectedProduct.ending_price}` :
+                      `$${selectedProduct.price}`;
+                    const productInfo = `Hi! I'm interested in this product:\n\n📦 ${selectedProduct.name}\n💰 Price: ${priceText}\n🔢 Code: ${selectedProduct.code}\n👤 Reseller: ${selectedProduct.reseller_name}\n\nCan you please provide more details about availability and delivery?`;
 
-                  if (isMobile) {
-                    // Try Instagram app deep link first
-                    const appUrl = 'instagram://user?username=reseller.market_';
-                    window.location.href = appUrl;
+                    // Copy product info to clipboard silently
+                    navigator.clipboard.writeText(productInfo).catch(() => {
+                      // Silently fail if clipboard doesn't work
+                    });
 
-                    // Fallback to web version after 1.5 seconds if app doesn't open
-                    setTimeout(() => {
+                    // Direct Instagram link to open the person's chat/profile
+                    const instagramUrl = 'https://www.instagram.com/reseller.market_?igsh=ZndjaXd3eWZpenl6&utm_source=qr';
+
+                    // Try to open Instagram app first on mobile, then fallback to web
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                    if (isMobile) {
+                      // Try Instagram app deep link first
+                      const appUrl = 'instagram://user?username=reseller.market_';
+                      window.location.href = appUrl;
+
+                      // Fallback to web version after 1.5 seconds if app doesn't open
+                      setTimeout(() => {
+                        window.open(instagramUrl, '_blank');
+                      }, 1500);
+                    } else {
+                      // Desktop: Open web version directly
                       window.open(instagramUrl, '_blank');
-                    }, 1500);
-                  } else {
-                    // Desktop: Open web version directly
-                    window.open(instagramUrl, '_blank');
-                  }
-                }}
-                className="bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-800 transition mt-auto text-sm sm:text-base font-medium"
-              >
-                Send DM on Instagram
-              </button>
+                    }
+                  }}
+                  className="w-full bg-black text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-800 transition text-sm sm:text-base font-medium"
+                >
+                  Send DM on Instagram
+                </button>
+              </div>
             </div>
           </div>
         </div>

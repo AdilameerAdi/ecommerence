@@ -2,7 +2,15 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProducts, trackProductAnalytics, trackUserAnalytics, generateSessionId, getClientIP } from "../lib/supabase";
 
-export default function Products({ filters = {}, searchQuery = "", codeSearchQuery = "" }) {
+export default function Products({ 
+  filters = {}, 
+  searchQuery = "", 
+  codeSearchQuery = "",
+  selectedCategory = null,
+  selectedBrand = null,
+  onBackToBrands = null,
+  onBackToCategories = null
+}) {
   // --- State for products from database ---
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -321,6 +329,46 @@ setAllProducts(mixedProducts);
 
   return (
     <section data-products-section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-10">
+      {/* Breadcrumb Navigation */}
+      {(selectedCategory || selectedBrand) && (
+        <div className="flex items-center mb-6 text-sm">
+          {onBackToCategories && (
+            <button
+              onClick={onBackToCategories}
+              className="flex items-center text-blue-600 hover:text-blue-800 transition-colors mr-4"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Categories
+            </button>
+          )}
+          
+          {selectedCategory && (
+            <>
+              <span className="text-gray-400 mx-2">›</span>
+              {onBackToBrands ? (
+                <button
+                  onClick={onBackToBrands}
+                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  {selectedCategory.name}
+                </button>
+              ) : (
+                <span className="text-gray-600">{selectedCategory.name}</span>
+              )}
+            </>
+          )}
+          
+          {selectedBrand && (
+            <>
+              <span className="text-gray-400 mx-2">›</span>
+              <span className="text-gray-600">{selectedBrand.name}</span>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Show active search indicator */}
       {(searchQuery || codeSearchQuery) && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -336,7 +384,11 @@ setAllProducts(mixedProducts);
       )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 sm:mb-0">Our Products</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-black mb-2 sm:mb-0">
+          {selectedBrand ? `${selectedBrand.name} Products` : 
+           selectedCategory ? `${selectedCategory.name} Products` : 
+           "Our Products"}
+        </h2>
         <div className="text-sm text-gray-600">
           {loading ? (
             "Loading..."

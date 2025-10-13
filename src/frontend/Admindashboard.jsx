@@ -58,6 +58,20 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Category edit modal states
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [editCategoryImageUrl, setEditCategoryImageUrl] = useState('');
+  const [editCategoryImageFile, setEditCategoryImageFile] = useState(null);
+
+  // Add product form states
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [selectedBrandId, setSelectedBrandId] = useState('');
+
+  // Edit product modal states
+  const [editSelectedCategoryId, setEditSelectedCategoryId] = useState('');
+  const [editSelectedBrandId, setEditSelectedBrandId] = useState('');
 
   // Image upload states
   const [uploadedImages, setUploadedImages] = useState([]);
@@ -123,6 +137,34 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to get filtered brands based on selected category
+  const getFilteredBrands = () => {
+    if (!selectedCategoryId) {
+      return [];
+    }
+    return brands.filter(brand => brand.category_id === parseInt(selectedCategoryId));
+  };
+
+  // Handle category selection change
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedBrandId(''); // Reset brand selection when category changes
+  };
+
+  // Helper function to get filtered brands for edit modal
+  const getEditFilteredBrands = () => {
+    if (!editSelectedCategoryId) {
+      return [];
+    }
+    return brands.filter(brand => brand.category_id === parseInt(editSelectedCategoryId));
+  };
+
+  // Handle category selection change in edit modal
+  const handleEditCategoryChange = (categoryId) => {
+    setEditSelectedCategoryId(categoryId);
+    setEditSelectedBrandId(''); // Reset brand selection when category changes
   };
 
   // Image upload helpers
@@ -214,6 +256,21 @@ export default function AdminDashboard() {
 
       setBrandImageFile(file);
       convertImageToBase64(file, setBrandImageUrl);
+    }
+  };
+
+  // Edit category image upload helpers
+  const handleEditCategoryImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image size must be less than 2MB');
+        return;
+      }
+
+      setEditCategoryImageFile(file);
+      convertImageToBase64(file, setEditCategoryImageUrl);
     }
   };
 
@@ -561,25 +618,11 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
                 </div>
                 <div className="flex gap-2 self-end sm:self-auto">
                   <button
-                    onClick={async () => {
-                      const newName = prompt("Edit category name", cat.name);
-                      const newDescription = prompt("Edit category description (optional)", cat.description || "");
-                      const newImageUrl = prompt("Edit category image URL (optional)", cat.image_url || "");
-                      if (newName && newName !== cat.name) {
-                        setLoading(true);
-                        const result = await updateCategory(cat.id, {
-                          name: newName,
-                          description: newDescription,
-                          image_url: newImageUrl
-                        });
-                        if (result.success) {
-                          await fetchCategories();
-                          alert('Category updated successfully!');
-                        } else {
-                          alert('Error updating category: ' + result.error);
-                        }
-                        setLoading(false);
-                      }
+                    onClick={() => {
+                      setEditingCategory(cat);
+                      setEditCategoryImageUrl(cat.image_url || '');
+                      setEditCategoryImageFile(null);
+                      setShowEditCategoryModal(true);
                     }}
                     className="px-2 sm:px-3 py-1 bg-gray-700 text-white rounded-lg hover:bg-gray-800 text-xs sm:text-sm transition duration-300"
                   >
@@ -864,8 +907,7 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
         const allImages = [...uploadedImages, ...newImageUrls];
 
         // Check if brand is selected
-        const brandId = formData.get('brand_id');
-        if (!brandId) {
+        if (!selectedBrandId) {
           alert('Please select a brand for this product');
           setLoading(false);
           return;
@@ -878,9 +920,9 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
           price: parseFloat(formData.get('price')),
           ending_price: formData.get('ending_price') ? parseFloat(formData.get('ending_price')) : null,
           description: formData.get('description'),
-          category_id: parseInt(formData.get('category_id')),
+          category_id: parseInt(selectedCategoryId),
           reseller_name: formData.get('reseller_name'),
-          brand_id: parseInt(brandId),
+          brand_id: parseInt(selectedBrandId),
           is_trending: formData.get('is_trending') === 'on',
           images: allImages
         };
@@ -891,6 +933,8 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
           await fetchProducts();
           e.target.reset();
           resetImageStates(); // Reset image upload states
+          setSelectedCategoryId(''); // Reset category selection
+          setSelectedBrandId(''); // Reset brand selection
           alert('Product added successfully!');
         } else {
           alert('Error adding product: ' + result.error);
@@ -964,6 +1008,8 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
         <label className="block text-gray-700 font-medium mb-2">Category</label>
         <select
           name="category_id"
+          value={selectedCategoryId}
+          onChange={(e) => handleCategoryChange(e.target.value)}
           required
           className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
         >
@@ -989,14 +1035,26 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
         <label className="block text-gray-700 font-medium mb-2">Brand</label>
         <select
           name="brand_id"
-          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+          value={selectedBrandId}
+          onChange={(e) => setSelectedBrandId(e.target.value)}
+          disabled={!selectedCategoryId}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+            !selectedCategoryId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+          }`}
           required
         >
-          <option value="">Select Brand *</option>
-          {brands.map(brand => (
+          <option value="">
+            {!selectedCategoryId ? 'Select Category First' : 'Select Brand *'}
+          </option>
+          {getFilteredBrands().map(brand => (
             <option key={brand.id} value={brand.id}>{brand.name}</option>
           ))}
         </select>
+        {!selectedCategoryId && (
+          <p className="text-sm text-gray-500 mt-1">
+            Please select a category first to see available brands
+          </p>
+        )}
       </div>
 
       {/* Description */}
@@ -1174,6 +1232,8 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
                 <button
                   onClick={() => {
                     setEditingProduct(product);
+                    setEditSelectedCategoryId(product.category_id);
+                    setEditSelectedBrandId(product.brand_id);
                     setShowEditModal(true);
                   }}
                   className="px-3 py-1 bg-gray-700 text-white rounded-lg hover:bg-gray-800 text-sm"
@@ -1215,6 +1275,8 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
               onClick={() => {
                 setShowEditModal(false);
                 setEditingProduct(null);
+                setEditSelectedCategoryId('');
+                setEditSelectedBrandId('');
                 resetImageStates();
               }}
               className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
@@ -1233,8 +1295,7 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
               const allImages = [...uploadedImages, ...newImageUrls];
 
               // Check if brand is selected
-              const brandId = formData.get('brand_id');
-              if (!brandId) {
+              if (!editSelectedBrandId) {
                 alert('Please select a brand for this product');
                 setLoading(false);
                 return;
@@ -1247,9 +1308,9 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
                 price: parseFloat(formData.get('price')),
                 ending_price: formData.get('ending_price') ? parseFloat(formData.get('ending_price')) : null,
                 description: formData.get('description'),
-                category_id: parseInt(formData.get('category_id')),
+                category_id: parseInt(editSelectedCategoryId),
                 reseller_name: formData.get('reseller_name'),
-                brand_id: parseInt(brandId),
+                brand_id: parseInt(editSelectedBrandId),
                 is_trending: formData.get('is_trending') === 'on',
                 // Only update images if new ones were uploaded
                 images: allImages.length > 0 ? allImages : undefined
@@ -1261,6 +1322,8 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
                 await fetchProducts();
                 setShowEditModal(false);
                 setEditingProduct(null);
+                setEditSelectedCategoryId('');
+                setEditSelectedBrandId('');
                 resetImageStates(); // Reset image upload states
                 alert('Product updated successfully!');
               } else {
@@ -1341,7 +1404,8 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
               <label className="block text-gray-700 font-medium mb-2">Category</label>
               <select
                 name="category_id"
-                defaultValue={editingProduct.category_id}
+                value={editSelectedCategoryId}
+                onChange={(e) => handleEditCategoryChange(e.target.value)}
                 required
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
               >
@@ -1368,15 +1432,26 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
               <label className="block text-gray-700 font-medium mb-2">Brand</label>
               <select
                 name="brand_id"
-                defaultValue={editingProduct.brand_id}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                value={editSelectedBrandId}
+                onChange={(e) => setEditSelectedBrandId(e.target.value)}
+                disabled={!editSelectedCategoryId}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                  !editSelectedCategoryId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                }`}
                 required
               >
-                <option value="">Select Brand *</option>
-                {brands.map(brand => (
+                <option value="">
+                  {!editSelectedCategoryId ? 'Select Category First' : 'Select Brand *'}
+                </option>
+                {getEditFilteredBrands().map(brand => (
                   <option key={brand.id} value={brand.id}>{brand.name}</option>
                 ))}
               </select>
+              {!editSelectedCategoryId && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Please select a category first to see available brands
+                </p>
+              )}
             </div>
 
             {/* Description */}
@@ -1521,6 +1596,8 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
                 onClick={() => {
                   setShowEditModal(false);
                   setEditingProduct(null);
+                  setEditSelectedCategoryId('');
+                  setEditSelectedBrandId('');
                   resetImageStates();
                 }}
                 className="flex-1 py-3 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 shadow-md transition duration-300"
@@ -1585,6 +1662,8 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
                         <button
                           onClick={() => {
                             setEditingProduct(product);
+                            setEditSelectedCategoryId(product.category_id);
+                            setEditSelectedBrandId(product.brand_id);
                             setShowEditModal(true);
                           }}
                           className="flex-1 px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
@@ -1871,7 +1950,213 @@ ${product.product_images && product.product_images.length > 0 ? `Images: ${produ
   <Analytics />
 )}
 
+    {/* Edit Category Modal */}
+    {showEditCategoryModal && editingCategory && (
+      <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 w-full max-w-2xl p-6 sm:p-8 lg:p-10 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-6 sm:mb-8">
+            <div>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1">Edit Category</h2>
+              <p className="text-sm text-gray-600">Update category information and image</p>
+            </div>
+            <button
+              onClick={() => {
+                setShowEditCategoryModal(false);
+                setEditingCategory(null);
+                setEditCategoryImageUrl('');
+                setEditCategoryImageFile(null);
+              }}
+              className="text-gray-400 hover:text-gray-600 text-2xl bg-white/80 hover:bg-white/90 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl border border-gray-200/50"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+
+              const categoryData = {
+                name: formData.get('name'),
+                description: formData.get('description'),
+                image_url: editCategoryImageUrl || editingCategory.image_url
+              };
+
+              setLoading(true);
+              const result = await updateCategory(editingCategory.id, categoryData);
+              if (result.success) {
+                await fetchCategories();
+                setShowEditCategoryModal(false);
+                setEditingCategory(null);
+                setEditCategoryImageUrl('');
+                setEditCategoryImageFile(null);
+                alert('Category updated successfully!');
+              } else {
+                alert('Error updating category: ' + result.error);
+              }
+              setLoading(false);
+            }}
+            className="space-y-6 sm:space-y-8"
+          >
+            {/* Category Name */}
+            <div className="space-y-2">
+              <label className="block text-gray-800 font-semibold text-sm sm:text-base">
+                Category Name *
+              </label>
+              <input
+                type="text"
+                name="name"
+                defaultValue={editingCategory.name}
+                placeholder="Enter category name"
+                required
+                className="w-full px-4 py-3 text-sm sm:text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="block text-gray-800 font-semibold text-sm sm:text-base">
+                Description
+              </label>
+              <textarea
+                name="description"
+                defaultValue={editingCategory.description || ''}
+                placeholder="Enter category description (optional)"
+                className="w-full px-4 py-3 text-sm sm:text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md resize-none"
+                rows="3"
+              />
+            </div>
+
+            {/* Category Image */}
+            <div className="space-y-4">
+              <label className="block text-gray-800 font-semibold text-sm sm:text-base">
+                Category Image
+              </label>
+
+              {/* Current Image Preview */}
+              {editingCategory.image_url && !editCategoryImageUrl && (
+                <div className="bg-gray-50/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3">Current Image:</h4>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <img
+                        src={editingCategory.image_url}
+                        alt="Current category"
+                        className="w-24 h-24 object-cover rounded-xl border-2 border-white shadow-lg"
+                      />
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Current category image</p>
+                      <p className="text-xs text-gray-500">Upload a new image below to replace it</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Image Upload */}
+              <div className="border-2 border-dashed border-gray-300/60 rounded-xl p-6 hover:border-blue-400/60 transition-all duration-200 bg-white/60 backdrop-blur-sm hover:bg-white/80">
+                {editCategoryImageUrl ? (
+                  <div className="text-center">
+                    <div className="mb-4">
+                      <img
+                        src={editCategoryImageUrl}
+                        alt="New category preview"
+                        className="w-24 h-24 object-cover rounded-xl mx-auto border-2 border-white shadow-lg"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditCategoryImageUrl('');
+                        setEditCategoryImageFile(null);
+                      }}
+                      className="text-red-600 text-sm font-medium hover:text-red-800 transition-colors"
+                    >
+                      Remove New Image
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                      <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div className="mb-4">
+                      <label htmlFor="editCategoryImageInput" className="cursor-pointer">
+                        <span className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+                          Click to upload a new image
+                        </span>
+                        <input
+                          id="editCategoryImageInput"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleEditCategoryImageSelect}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                This image will be displayed in the category filter on the user side
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-4 border-t border-gray-200/50">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 py-3 px-6 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Update Category
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditCategoryModal(false);
+                  setEditingCategory(null);
+                  setEditCategoryImageUrl('');
+                  setEditCategoryImageFile(null);
+                }}
+                className="flex-1 py-3 px-6 text-sm sm:text-base bg-white/80 backdrop-blur-sm text-gray-700 font-semibold rounded-xl hover:bg-white/90 border border-gray-200/50 hover:border-gray-300/50 shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
 
       </div>
     </div>

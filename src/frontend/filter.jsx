@@ -4,13 +4,13 @@ import "rc-slider/assets/index.css"; // required styles
 import { getCategoriesWithBrandCounts, getBrandsByCategory } from "../lib/supabase";
 import SmartImage from "../components/SmartImage";
 
-export default function FilterBar({ onFiltersChange }) {
+export default function FilterBar({ onFiltersChange, hideCategoryFilter = false, hideBrandFilter = false }) {
   const [filters, setFilters] = useState({
     category: "",
     price: [0, 200000],
     sort: "",
     trending: "",
-    brands: [],
+    brandIds: [],
   });
 
   const [categories, setCategories] = useState([]);
@@ -87,7 +87,7 @@ export default function FilterBar({ onFiltersChange }) {
     if (e.target.name === 'category') {
       const categoryId = e.target.value ? parseInt(e.target.value) : null;
       fetchBrands(categoryId);
-      newFilters.brands = []; // Clear selected brands when category changes
+      newFilters.brandIds = []; // Clear selected brands when category changes
       setFilters(newFilters);
     }
 
@@ -98,7 +98,7 @@ export default function FilterBar({ onFiltersChange }) {
   };
 
   const handleCategorySelect = (categoryId) => {
-    const newFilters = { ...filters, category: categoryId.toString(), brands: [] };
+    const newFilters = { ...filters, category: categoryId.toString(), brandIds: [] };
     setFilters(newFilters);
     setShowCategories(false);
 
@@ -112,11 +112,11 @@ export default function FilterBar({ onFiltersChange }) {
   };
 
   const handleBrandToggle = (brandId) => {
-    const newBrands = filters.brands.includes(brandId)
-      ? filters.brands.filter(id => id !== brandId)
-      : [...filters.brands, brandId];
+    const newBrands = filters.brandIds.includes(brandId)
+      ? filters.brandIds.filter(id => id !== brandId)
+      : [...filters.brandIds, brandId];
 
-    const newFilters = { ...filters, brands: newBrands };
+    const newFilters = { ...filters, brandIds: newBrands };
     setFilters(newFilters);
 
     if (onFiltersChange) {
@@ -140,7 +140,7 @@ export default function FilterBar({ onFiltersChange }) {
       price: [0, 200000],
       sort: "",
       trending: "",
-      brands: [],
+      brandIds: [],
     };
     setFilters(resetFilters);
     if (onFiltersChange) {
@@ -149,14 +149,15 @@ export default function FilterBar({ onFiltersChange }) {
   };
 
   // Check if any filters are active
-  const hasActiveFilters = filters.category || filters.sort || filters.trending || filters.brands.length > 0 ||
+  const hasActiveFilters = filters.category || filters.sort || filters.trending || filters.brandIds.length > 0 ||
     (filters.price && (filters.price[0] > 0 || filters.price[1] < 200000));
 
   return (
     <div className="w-full max-w-7xl mx-auto bg-white border-b py-4 sm:py-5 px-4 sm:px-6 lg:px-8 shadow-sm">
       <div className="flex flex-col gap-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${hideCategoryFilter && hideBrandFilter ? 'lg:grid-cols-2' : hideCategoryFilter || hideBrandFilter ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 sm:gap-5`}>
         {/* Categories - Dropdown */}
+        {!hideCategoryFilter && (
         <div className="relative">
           <label className="block text-sm font-semibold text-gray-800 mb-3">Categories</label>
           <div ref={categoriesRef}>
@@ -257,6 +258,7 @@ export default function FilterBar({ onFiltersChange }) {
             )}
           </div>
         </div>
+        )}
 
         {/* Price Range - Click to Expand */}
         <div className="relative">
@@ -328,6 +330,7 @@ export default function FilterBar({ onFiltersChange }) {
         </div>
 
         {/* Brands - Multiple Selection */}
+        {!hideBrandFilter && (
         <div className="relative">
           <label className="block text-sm font-semibold text-gray-800 mb-3">Brands</label>
           <div ref={brandsRef}>
@@ -336,9 +339,9 @@ export default function FilterBar({ onFiltersChange }) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-left focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white transition-all hover:bg-amber-50 hover:border-amber-400 flex items-center justify-between"
             >
               <span>
-                {filters.brands.length === 0
+                {filters.brandIds.length === 0
                   ? "All Brands"
-                  : `${filters.brands.length} Brand${filters.brands.length > 1 ? 's' : ''} Selected`}
+                  : `${filters.brandIds.length} Brand${filters.brandIds.length > 1 ? 's' : ''} Selected`}
               </span>
               <svg className={`w-4 h-4 transition-transform ${showBrands ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -357,7 +360,7 @@ export default function FilterBar({ onFiltersChange }) {
                       <label key={brand.id} className="flex items-center cursor-pointer hover:bg-amber-50 p-2 rounded-lg border border-transparent hover:border-amber-200 transition-all">
                         <input
                           type="checkbox"
-                          checked={filters.brands.includes(brand.id)}
+                          checked={filters.brandIds.includes(brand.id)}
                           onChange={() => handleBrandToggle(brand.id)}
                           className="mr-3 text-amber-500 focus:ring-amber-500 rounded"
                         />
@@ -389,6 +392,7 @@ export default function FilterBar({ onFiltersChange }) {
             )}
           </div>
         </div>
+        )}
         </div>
 
         {/* Reset Filters Button */}
